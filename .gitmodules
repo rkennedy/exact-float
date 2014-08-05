@@ -1,0 +1,6 @@
+[submodule "autoconf-archive"]
+	path = autoconf-archive
+	url = git://git.sv.gnu.org/autoconf-archive.git
+[submodule "boost.m4"]
+	path = boost.m4
+	url = git://github.com/rkennedy/boost.m4
