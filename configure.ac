@@ -21,6 +21,7 @@ AX_APPEND_COMPILE_FLAGS([-fexceptions -pedantic], [CXXFLAGS], [$extra_flags])
 m4_pushdef([AC_INCLUDES_DEFAULT], [])
 
 BOOST_REQUIRE
+BOOST_TEST
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

@@ -1,11 +1,12 @@
 #define BOOST_AUTO_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
 #include <boost/test/auto_unit_test.hpp>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/tuple/tuple_io.hpp>
-#include "analyze-float.h"
-#include "analyze-float.cpp"
+#include "src/analyze-float.h"
+#include "src/analyze-float.cpp"
 
 BOOST_AUTO_TEST_CASE(extended_zero)
 {

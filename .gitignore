@@ -2,6 +2,7 @@
 *.o
 *.log
 *.trs
+.deps
 .dirstamp
 Makefile
 Makefile.in
@@ -14,5 +15,6 @@ depcomp
 display-float
 install-sh
 missing
-src/.deps/
 stamp-h1
+test-analyze-float
+test-driver
