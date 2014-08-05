@@ -9,7 +9,12 @@ AC_LANG([C++])
 RK_LIBEXT
 
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
+# Some compilers will ignore options they don't recognize, but we don't want
+# to add -fexceptions or -pedantic when they're not necessary. Check whether
+# the compiler supports complaining about unrecognized options, and if it does,
+# then make sure that's active when checking for other options.
 AX_CHECK_COMPILE_FLAG([-Werror=unused-command-line-argument], [
     extra_flags=-Werror=unused-command-line-argument
 ])

@@ -1,13 +1,14 @@
 #undef _GLIBCXX_DEBUG
-#include <boost/cstdint.hpp>
+#include "config.h"
+#include <cstdint>
 #include <iostream>
 #include <string>
 #include <limits>
 #include <algorithm>
 #include <functional>
 #include <numeric>
+#include <tuple>
 #include <boost/dynamic_bitset.hpp>
-#include <boost/tuple/tuple.hpp>
 #include "analyze-float.h"
 
 template <>
@@ -83,7 +84,7 @@ find_last(bitset const& bitset)
 }
 
 size_t
-find_last(uint64_t value)
+find_last(std::uint64_t value)
 {
     if (!value)
         return -1;
@@ -121,13 +122,10 @@ struct greater_equal<bitset>: public std::binary_function<bitset, bitset, bool>
 
 namespace {
 
-using boost::make_tuple;
-using boost::ref;
-
-boost::tuple<bool /*sum*/, bool /*carry*/>
+std::tuple<bool /*sum*/, bool /*carry*/>
 one_bit_add(bool const a, bool const b, bool carry)
 {
-    return make_tuple(
+    return std::make_tuple(
         a ^ b ^ carry,
         (a + b + carry) >= 2);
 }
@@ -148,7 +146,7 @@ Multiply(bitset A, bitset const& B)
                 Product.resize(a_size);
                 bool carry = false;
                 for (size_t j = 0; j < a_size; ++j)
-                    make_tuple(Product[j], ref(carry)) = one_bit_add(A[j], Product[j], carry);
+                    std::make_tuple(Product[j], std::ref(carry)) = one_bit_add(A[j], Product[j], carry);
                    if (carry)
                     Product.push_back(1);
             }
@@ -156,10 +154,10 @@ Multiply(bitset A, bitset const& B)
     return Product;
 }
 
-boost::tuple<bool /*diff*/, bool /*borrow*/>
+std::tuple<bool /*diff*/, bool /*borrow*/>
 one_bit_subtract(bool const a, bool const b, bool borrow)
 {
-    return make_tuple(
+    return std::make_tuple(
         (a + b + borrow) & 1,
         (borrow && b) || (borrow && !a) || (b && !a));
 }
@@ -173,13 +171,13 @@ Subtract(bitset A, bitset B)
     bitset Diff(nbits);
     bool borrow = false;
     for (size_t i = 0; i < nbits; ++i)
-        make_tuple(Diff[i], ref(borrow)) = one_bit_subtract(A[i], B[i], borrow);
+        std::make_tuple(Diff[i], std::ref(borrow)) = one_bit_subtract(A[i], B[i], borrow);
     assert(!borrow);
     Diff.resize(find_last(Diff) + 1);
     return Diff;
 }
 
-boost::tuple<bitset /*Quotient*/, unsigned /*Remainder*/>
+std::tuple<bitset /*Quotient*/, unsigned /*Remainder*/>
 DivideAndRemainder(bitset Dividend, bitset Divisor)
 {
     assert(Divisor.any()); // can't divide by zero
@@ -199,11 +197,11 @@ DivideAndRemainder(bitset Dividend, bitset Divisor)
         } while (offset-- != 0);
     }
     Quotient.resize(find_last(Quotient) + 1);
-    return make_tuple(Quotient, Dividend.to_ulong());
+    return std::make_tuple(Quotient, Dividend.to_ulong());
 }
 
 bitset
-build_bitset(uint64_t value, unsigned nBits)
+build_bitset(std::uint64_t value, unsigned nBits)
 {
     bitset result;
     while (nBits--) {
@@ -214,7 +212,7 @@ build_bitset(uint64_t value, unsigned nBits)
 }
 
 bitset
-build_bitset(uint64_t value)
+build_bitset(std::uint64_t value)
 {
     return build_bitset(value, find_last(value) + 1);
 }
@@ -236,7 +234,7 @@ build_result(int DecExp, bitset Man, bool negative, char decimal_point, char tho
                 result += thousands_sep;
         }
         unsigned Remainder;
-        boost::tie(Man, Remainder) = DivideAndRemainder(Man, ten);
+        std::tie(Man, Remainder) = DivideAndRemainder(Man, ten);
         ++DecExp;
         assert(Remainder < 10);
         assert(Remainder >= 0);
@@ -250,7 +248,7 @@ build_result(int DecExp, bitset Man, bool negative, char decimal_point, char tho
  * Reduce mantissa to minimum number of bits
  * That is, while mantissa is even, divide by 2 and increment binary
  * exponent. Stop if the exponent isn't negative. */
-boost::tuple<bitset, int /*BinExp*/>
+std::tuple<bitset, int /*BinExp*/>
 minimize_mantissa(bitset const& Man, int BinExp)
 {
     bitset::size_type const idx = Man.find_first();
@@ -258,8 +256,8 @@ minimize_mantissa(bitset const& Man, int BinExp)
     // If assertion fails, result should be +/- 0.0
     int const adjustment = std::min<int>(idx, -BinExp);
     if (adjustment <= 0)
-        return make_tuple(Man, BinExp);
-    return make_tuple(Man >> adjustment, BinExp + adjustment);
+        return std::make_tuple(Man, BinExp);
+    return std::make_tuple(Man >> adjustment, BinExp + adjustment);
 }
 
 /**
@@ -268,14 +266,14 @@ minimize_mantissa(bitset const& Man, int BinExp)
  * as multiply by 5 and increment of the BinExp exponent. Also note
  * that a multiply by 5 adds two or three bits to the number of
  * mantissa bits. */
-boost::tuple<bitset, int /*BinExp*/, int/*DecExp*/>
+std::tuple<bitset, int /*BinExp*/, int/*DecExp*/>
 remove_fraction(bitset Man, int const BinExp)
 {
     if (BinExp >= 0)
-        return make_tuple(Man, BinExp, 0);
+        return std::make_tuple(Man, BinExp, 0);
 
     std::vector<bitset> const multipliers(-BinExp, build_bitset(5));
-    return make_tuple(
+    return std::make_tuple(
         std::accumulate(multipliers.begin(), multipliers.end(), Man, Multiply),
         0,
         BinExp);
@@ -294,16 +292,15 @@ reduce_binary_exponent(bitset Man, int BinExp)
 
 // Value = Mantissa * 2^BinExp * 10^DecExp
 std::string
-FloatingBinPointToDecStr(uint64_t Value, int BinExp, bool negative, char decimal_point /*= '.'*/, char thousands_sep /*= ' '*/)
+FloatingBinPointToDecStr(std::uint64_t Value, int BinExp, bool negative, char decimal_point /*= '.'*/, char thousands_sep /*= ' '*/)
 {
-    using boost::tie;
     bitset Man = build_bitset(Value);
 
-    tie(Man, BinExp) = minimize_mantissa(Man, BinExp);
+    std::tie(Man, BinExp) = minimize_mantissa(Man, BinExp);
     assert(Man.any());
 
     int DecExp;
-    tie(Man, BinExp, DecExp) = remove_fraction(Man, BinExp);
+    std::tie(Man, BinExp, DecExp) = remove_fraction(Man, BinExp);
     assert(DecExp <= 0);
 
     Man = reduce_binary_exponent(Man, BinExp);

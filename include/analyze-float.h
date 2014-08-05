@@ -1,30 +1,30 @@
 #ifndef ANALYZE_FLOAT_H
 #define ANALYZE_FLOAT_H
 #undef _GLIBCXX_DEBUG
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <string>
-#include <boost/static_assert.hpp>
 #include <boost/detail/endian.hpp>
 #include <boost/mpl/if.hpp>
 #include <boost/dynamic_bitset.hpp>
 
-typedef boost::dynamic_bitset<uint32_t> bitset;
+typedef boost::dynamic_bitset<std::uint32_t> bitset;
 
 enum float_type { unknown, normal, zero, denormal, indefinite, infinity, quiet_nan, signaling_nan };
 
 struct BigEndianExtended
 {
-    uint16_t exponent;
-    uint64_t mantissa;
+    std::uint16_t exponent;
+    std::uint64_t mantissa;
 };
 struct LittleEndianExtended
 {
-    uint64_t mantissa;
-    uint16_t exponent;
+    std::uint64_t mantissa;
+    std::uint16_t exponent;
 };
 
 typedef boost::mpl::if_c<BOOST_BYTE_ORDER == 1234, LittleEndianExtended, BigEndianExtended>::type Extended;
-BOOST_STATIC_ASSERT(sizeof(Extended) == sizeof(long double));
+static_assert(sizeof(Extended) == sizeof(long double),
+              "long double isn't a match for Extended");
 
 template <typename Float>
 struct float_traits
@@ -53,7 +53,7 @@ struct float_traits<double>
     static unsigned const exponent_bits = 11;
     static signed const exponent_bias = 1023;
     static bool const implied_one = true;
-    typedef uint64_t record_type;
+    typedef std::uint64_t record_type;
 };
 
 template <>
@@ -63,7 +63,7 @@ struct float_traits<float>
     static unsigned const exponent_bits = 8;
     static signed const exponent_bias = 127;
     static bool const implied_one = true;
-    typedef uint32_t record_type;
+    typedef std::uint32_t record_type;
 };
 
 template <typename Float>
@@ -73,9 +73,12 @@ union FloatRec
     typename float_traits<Float>::record_type rec;
     FloatRec(Float const value): val(value) { }
 };
-BOOST_STATIC_ASSERT(sizeof(FloatRec<long double>) == sizeof(long double));
-BOOST_STATIC_ASSERT(sizeof(FloatRec<double>) == sizeof(double));
-BOOST_STATIC_ASSERT(sizeof(FloatRec<float>) == sizeof(float));
+static_assert(sizeof(FloatRec<long double>) == sizeof(long double),
+              "FloatRec has wrong size for long double");
+static_assert(sizeof(FloatRec<double>) == sizeof(double),
+              "FloatRec has wrong size for double");
+static_assert(sizeof(FloatRec<float>) == sizeof(float),
+              "FloatRec has wrong size for float");
 
 template <typename Float>
 struct FloatInfo
@@ -84,13 +87,13 @@ private:
     FloatRec<Float> helper;
 public:
     bool negative;
-    uint16_t exponent;
-    uint64_t mantissa;
+    std::uint16_t exponent;
+    std::uint64_t mantissa;
     float_type number_type;
 
     FloatInfo(Float const value);
 };
 
 std::string
-FloatingBinPointToDecStr(uint64_t Value, int ValBinExp, bool negative, char decimal_point = '.', char thousands_sep = ' ');
+FloatingBinPointToDecStr(std::uint64_t Value, int ValBinExp, bool negative, char decimal_point = '.', char thousands_sep = ' ');
 #endif

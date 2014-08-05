@@ -1,3 +1,4 @@
+#include "config.h"
 #include <cstddef>
 #include <iostream>
 #include <string>
@@ -12,7 +13,7 @@ ExactFloatToStrEx(T const value, char decimal_point = '.', char thousands_sep = 
     FloatInfo<T> const info(value);
     switch (info.number_type) {
         case normal: {
-            uint64_t const full_mantissa = (static_cast<uint64_t>(1) << (float_traits<T>::mantissa_bits - 1 + float_traits<T>::implied_one)) | info.mantissa;
+            std::uint64_t const full_mantissa = (static_cast<std::uint64_t>(1) << (float_traits<T>::mantissa_bits - 1 + float_traits<T>::implied_one)) | info.mantissa;
             return FloatingBinPointToDecStr(full_mantissa, info.exponent - float_traits<T>::exponent_bias - (float_traits<T>::mantissa_bits - 1 + float_traits<T>::implied_one), info.negative, decimal_point, thousands_sep);
         }
         case zero:
