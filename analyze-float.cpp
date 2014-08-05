@@ -192,7 +192,8 @@ DivideAndRemainder(bitset Dividend, bitset Divisor)
 		size_t offset = find_last(Dividend) - find_last(Divisor);
 		Divisor <<= offset;
 		do {
-			if (Quotient[offset] = ge(Dividend, Divisor))
+			Quotient[offset] = ge(Dividend, Divisor);
+			if (Quotient[offset])
 				Dividend = Subtract(Dividend, Divisor);
 			Divisor >>= 1;
 		} while (offset-- != 0);
