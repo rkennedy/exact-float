@@ -88,8 +88,8 @@ TEST(BitsetOpsTest, test_find_last)
 TEST(BitsetOpsTest, test_build_bitset)
 {
     EXPECT_EQ(bitset(), build_bitset(0, 0));
-
-    EXPECT_EQ(bitset(std::string("1010101010101010101010101010101010101010101010101010101010101010")), build_bitset(0xAAAAAAAAAAAAAAAAull, 64));
+    EXPECT_EQ(bitset(std::string("1010101010101010101010101010101010101010101010101010101010101010")),
+              build_bitset(0xAAAAAAAAAAAAAAAAull, 64));
 }
 
 TEST(BitsetOpsTest, test_find_last_int)
@@ -120,23 +120,36 @@ TEST(BitsetOpsTest, test_one_bit_add)
 
 TEST(BitsetOpsTest, test_ont_bit_subtract)
 {
-    EXPECT_EQ(one_bit_subtract(false, false, false), std::make_tuple(false, false));
-    EXPECT_EQ(one_bit_subtract(false, false, true), std::make_tuple(true, true));
-    EXPECT_EQ(one_bit_subtract(false, true, false), std::make_tuple(true, true));
-    EXPECT_EQ(one_bit_subtract(false, true, true), std::make_tuple(false, true));
-    EXPECT_EQ(one_bit_subtract(true, false, false), std::make_tuple(true, false));
-    EXPECT_EQ(one_bit_subtract(true, false, true), std::make_tuple(false, false));
-    EXPECT_EQ(one_bit_subtract(true, true, false), std::make_tuple(false, false));
-    EXPECT_EQ(one_bit_subtract(true, true, true), std::make_tuple(true, true));
+    EXPECT_EQ(one_bit_subtract(false, false, false),
+              std::make_tuple(false, false));
+    EXPECT_EQ(one_bit_subtract(false, false, true),
+              std::make_tuple(true, true));
+    EXPECT_EQ(one_bit_subtract(false, true, false),
+              std::make_tuple(true, true));
+    EXPECT_EQ(one_bit_subtract(false, true, true),
+              std::make_tuple(false, true));
+    EXPECT_EQ(one_bit_subtract(true, false, false),
+              std::make_tuple(true, false));
+    EXPECT_EQ(one_bit_subtract(true, false, true),
+              std::make_tuple(false, false));
+    EXPECT_EQ(one_bit_subtract(true, true, false),
+              std::make_tuple(false, false));
+    EXPECT_EQ(one_bit_subtract(true, true, true),
+              std::make_tuple(true, true));
 }
 
 TEST(BitsetOpsTest, test_multiply)
 {
-    EXPECT_EQ(Multiply(build_bitset(10), build_bitset(50)), build_bitset(500));
-    EXPECT_EQ(Multiply(build_bitset(50), build_bitset(2)), build_bitset(100));
-    EXPECT_EQ(Multiply(build_bitset(0), build_bitset(1)), bitset());
-    EXPECT_EQ(Multiply(build_bitset(0xffffffff), build_bitset(0xffffffff)), build_bitset(18446744065119617025u));
-    EXPECT_EQ(Multiply(bitset(), bitset()), bitset());
+    EXPECT_EQ(Multiply(build_bitset(10), build_bitset(50)),
+              build_bitset(500));
+    EXPECT_EQ(Multiply(build_bitset(50), build_bitset(2)),
+              build_bitset(100));
+    EXPECT_EQ(Multiply(build_bitset(0), build_bitset(1)),
+              bitset());
+    EXPECT_EQ(Multiply(build_bitset(0xffffffff), build_bitset(0xffffffff)),
+              build_bitset(18446744065119617025u));
+    EXPECT_EQ(Multiply(bitset(), bitset()),
+              bitset());
 }
 
 TEST(BitsetOpsTest, test_subtract)
@@ -148,43 +161,54 @@ TEST(BitsetOpsTest, test_subtract)
 
 TEST(BitsetOpsTest, test_bitset_ge)
 {
-    EXPECT_PRED2(std::greater_equal<bitset>(), build_bitset(2), build_bitset(1));
-    EXPECT_PRED2(std::greater_equal<bitset>(), build_bitset(10), build_bitset(9));
-    EXPECT_PRED2(std::greater_equal<bitset>(), build_bitset(20), build_bitset(2));
-    EXPECT_PRED2(std::greater_equal<bitset>(), bitset(std::string("00100")), bitset(std::string("100")));
-    EXPECT_PRED2(std::not2(std::greater_equal<bitset>()), bitset(), build_bitset(2));
+    EXPECT_PRED2(std::greater_equal<bitset>(),
+                 build_bitset(2), build_bitset(1));
+    EXPECT_PRED2(std::greater_equal<bitset>(),
+                 build_bitset(10), build_bitset(9));
+    EXPECT_PRED2(std::greater_equal<bitset>(),
+                 build_bitset(20), build_bitset(2));
+    EXPECT_PRED2(std::greater_equal<bitset>(),
+                 bitset(std::string("00100")), bitset(std::string("100")));
+    EXPECT_PRED2(std::not2(std::greater_equal<bitset>()),
+                 bitset(), build_bitset(2));
 }
 
 TEST(BitsetOpsTest, test_divide)
 {
-    EXPECT_EQ(DivideAndRemainder(build_bitset(42), build_bitset(7)), std::make_tuple(build_bitset(6), 0u));
-
-    EXPECT_EQ(DivideAndRemainder(bitset(), build_bitset(45)), std::make_tuple(bitset(), 0u));
-
-    EXPECT_EQ(DivideAndRemainder(build_bitset(10235), build_bitset(10)), std::make_tuple(build_bitset(1023), 5u));
+    EXPECT_EQ(DivideAndRemainder(build_bitset(42), build_bitset(7)),
+              std::make_tuple(build_bitset(6), 0u));
+    EXPECT_EQ(DivideAndRemainder(bitset(), build_bitset(45)),
+              std::make_tuple(bitset(), 0u));
+    EXPECT_EQ(DivideAndRemainder(build_bitset(10235), build_bitset(10)),
+              std::make_tuple(build_bitset(1023), 5u));
 }
 
 TEST(BitsetOpsTest, test_minimize_mantissa)
 {
-    EXPECT_EQ(minimize_mantissa(bitset(std::string("011000")), 3), std::make_tuple(bitset(std::string("011000")), 3));
-
-    EXPECT_EQ(minimize_mantissa(bitset(std::string("0100")), -3), std::make_tuple(bitset(std::string("0001")), -1));
-
-    EXPECT_EQ(minimize_mantissa(bitset(std::string("110000")), -3), std::make_tuple(bitset(std::string("000110")), 0));
+    EXPECT_EQ(minimize_mantissa(bitset(std::string("011000")), 3),
+              std::make_tuple(bitset(std::string("011000")), 3));
+    EXPECT_EQ(minimize_mantissa(bitset(std::string("0100")), -3),
+              std::make_tuple(bitset(std::string("0001")), -1));
+    EXPECT_EQ(minimize_mantissa(bitset(std::string("110000")), -3),
+              std::make_tuple(bitset(std::string("000110")), 0));
 }
 
 TEST(BitsetOpsTest, test_remove_fraction)
 {
-    EXPECT_EQ(remove_fraction(build_bitset(2), -4), std::make_tuple(build_bitset((1*5*5*5*5) * 2), 0, -4));
-
-    EXPECT_EQ(remove_fraction(build_bitset(3), 0), std::make_tuple(build_bitset(3), 0, 0));
-
-    EXPECT_EQ(remove_fraction(build_bitset(4), 6), std::make_tuple(build_bitset(4), 6, 0));
+    EXPECT_EQ(remove_fraction(build_bitset(2), -4),
+              std::make_tuple(build_bitset((1*5*5*5*5) * 2), 0, -4));
+    EXPECT_EQ(remove_fraction(build_bitset(3), 0),
+              std::make_tuple(build_bitset(3), 0, 0));
+    EXPECT_EQ(remove_fraction(build_bitset(4), 6),
+              std::make_tuple(build_bitset(4), 6, 0));
 }
 
 TEST(BitsetOpsTest, test_reduce_binary_exponent)
 {
-    EXPECT_EQ(reduce_binary_exponent(bitset(std::string("1100")), 4), bitset(std::string("11000000")));
-    EXPECT_EQ(reduce_binary_exponent(bitset(std::string("1100")), 1), bitset(std::string("11000")));
-    EXPECT_EQ(reduce_binary_exponent(bitset(std::string("110")), 0), bitset(std::string("110")));
+    EXPECT_EQ(reduce_binary_exponent(bitset(std::string("1100")), 4),
+              bitset(std::string("11000000")));
+    EXPECT_EQ(reduce_binary_exponent(bitset(std::string("1100")), 1),
+              bitset(std::string("11000")));
+    EXPECT_EQ(reduce_binary_exponent(bitset(std::string("110")), 0),
+              bitset(std::string("110")));
 }
