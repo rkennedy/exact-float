@@ -2,7 +2,6 @@
 #include <tuple>
 #include <gtest/gtest.h>
 #include <boost/dynamic_bitset.hpp>
-#include "tuple_io.h"
 #include "analyze-float.h"
 #include "src/analyze-float.cpp"
 
