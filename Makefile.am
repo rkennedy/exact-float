@@ -16,8 +16,8 @@ noinst_PROGRAMS = test-analyze-float
 test_analyze_float_SOURCES = tests/test-analyze-float.cpp
 test_analyze_float_CPPFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(GTEST_CPPFLAGS)
 test_analyze_float_CXXFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(GTEST_CXXFLAGS)
-test_analyze_float_LDFLAGS = $(BOOST_UNIT_TEST_FRAMEWORK_LDFLAGS) $(GTEST_LDFLAGS)
-test_analyze_float_LDADD = $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) $(GTEST_LIBS) libgtest-all.a
+test_analyze_float_LDFLAGS = $(GTEST_LDFLAGS)
+test_analyze_float_LDADD = $(GTEST_LIBS) libgtest-all.a
 
 TESTS = test-analyze-float
 endif
