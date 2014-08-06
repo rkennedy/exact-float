@@ -11,27 +11,17 @@ int main(int argc, char* argv[])
     return RUN_ALL_TESTS();
 }
 
-TEST(FloatInfoTest, extended_zero)
+template <typename T>
+class CommonFloatInfoTest: public ::testing::Test
 {
-    FloatInfo<long double> const info(0.0);
-    EXPECT_FALSE(info.negative);
-    EXPECT_EQ(info.exponent, 0);
-    EXPECT_EQ(info.mantissa, 0u);
-    EXPECT_EQ(info.number_type, zero);
-}
+};
 
-TEST(FloatInfoTest, double_zero)
-{
-    FloatInfo<double> const info(0.0);
-    EXPECT_FALSE(info.negative);
-    EXPECT_EQ(info.exponent, 0);
-    EXPECT_EQ(info.mantissa, 0u);
-    EXPECT_EQ(info.number_type, zero);
-}
+typedef ::testing::Types<long double, double, float> FloatTypes;
+TYPED_TEST_CASE(CommonFloatInfoTest, FloatTypes);
 
-TEST(FloatInfoTest, single_zero)
+TYPED_TEST(CommonFloatInfoTest, Zero)
 {
-    FloatInfo<float> const info(0.0);
+    FloatInfo<TypeParam> const info(0.0);
     EXPECT_FALSE(info.negative);
     EXPECT_EQ(info.exponent, 0);
     EXPECT_EQ(info.mantissa, 0u);
