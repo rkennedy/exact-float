@@ -19,28 +19,14 @@ AC_DEFUN([RK_LIB_GTEST], [
                 # --with-gtest is not on command line, so the library is
                 # optional.
                 gtest_search_fatal=no
-                AS_IF([test x"$GTEST_ROOT" != x], [
-                    AC_MSG_NOTICE([Detected GTEST_ROOT=$GTEST_ROOT])
-                    gtest_search=yes
-                ])
             ],
-            [xyes], [
-                gtest_search=yes
-                gtest_search_fatal=yes
-                AS_IF([test x"$GTEST_ROOT" = x], [
-                    AC_MSG_FAILURE([GTEST_ROOT is not set. Set it or provide path with --with-gtest.])
-                ])
-            ],
-            [xno], [gtest_search=no],
+            [xyes], [gtest_search_fatal=yes],
+            [xno], [unset GTEST_ROOT],
             [
-                gtest_search=yes
                 gtest_search_fatal=yes
-                AS_IF([test x"$GTEST_ROOT" != x], [
-                    AC_MSG_NOTICE([Detected GTEST_ROOT=$GTEST_ROOT, but ignoring in favor of --with-gtest])
-                ])
                 GTEST_ROOT=$with_gtest
             ])
-    AS_IF([test x"$gtest_search" = xyes], [
+    AS_IF([test x"$GTEST_ROOT" != x], [
         AC_ARG_VAR([GTEST_CPPFLAGS], [Preprocessor flags for Google Test])
         AC_ARG_VAR([GTEST_CXXFLAGS], [C++ compiler flags for Google Test])
         AC_ARG_VAR([GTEST_LDFLAGS], [Linker flags for Google Test])
@@ -51,24 +37,20 @@ AC_DEFUN([RK_LIB_GTEST], [
         AX_SAVE_FLAGS([gtest])
         CPPFLAGS=$GTEST_CPPFLAGS
         CXXFLAGS=$GTEST_CXXFLAGS
-        LDFLAGS=$GTEST_LDFLAGS
-        LDADD=$GTEST_LIBS
-        AC_CHECK_HEADER([gtest/gtest.h], [], [
-            AS_IF([test x"$gtest_search_fatal" = xyes], [
-                AC_MSG_FAILURE([Could not find gtest.h; maybe set GTEST_ROOT to where the include directory is.])
-            ], [
-                gtest_search=no
-            ])
-        ])
+        AC_CHECK_HEADER([gtest/gtest.h])
         AX_RESTORE_FLAGS([gtest])
         AC_LANG_POP([C++])
     ])
-    AM_CONDITIONAL([USE_GTEST], [test x"$gtest_search" = xyes])
-    AS_IF([test x"$gtest_search" = xyes], [
+    AS_IF([test x"$ac_cv_header_gtest_gtest_h" = xyes], [
         AC_CHECK_FILE([$GTEST_ROOT/src/gtest-all.cc], [
             AC_CONFIG_LINKS([tests/gtest-all.cc:$GTEST_ROOT/src/gtest-all.cc])
         ], [
             AC_MSG_FAILURE([Could not find src/gtest-all.cc in $GTEST_ROOT.])
         ])
+    ], [
+        AS_IF([test x"$gtest_search_fatal" = xyes], [
+            AC_MSG_FAILURE([Could not include gtest/gtest.h; try setting --with-gtest.])
+        ])
     ])
+    AM_CONDITIONAL([USE_GTEST], [test x"$ac_cv_header_gtest_gtest_h" = xyes])
 ])
