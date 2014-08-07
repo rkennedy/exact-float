@@ -45,7 +45,7 @@ AC_DEFUN([RK_LIB_GTEST], [
         AC_ARG_VAR([GTEST_CXXFLAGS], [C++ compiler flags for Google Test])
         AC_ARG_VAR([GTEST_LDFLAGS], [Linker flags for Google Test])
         AC_ARG_VAR([GTEST_LIBS], [Additional libraries to include when using Google Test])
-        : ${GTEST_CPPFLAGS:=-I$GTEST_ROOT/include}
+        : ${GTEST_CPPFLAGS:=-isystem $GTEST_ROOT/include}
         : ${GTEST_CXXFLAGS:=-pthread}
         AC_LANG_PUSH([C++])
         AX_SAVE_FLAGS([gtest])
