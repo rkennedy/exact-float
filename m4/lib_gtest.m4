@@ -12,36 +12,34 @@ AC_DEFUN([RK_LIB_GTEST], [
 
     AC_ARG_WITH([gtest],
                 [AS_HELP_STRING([--with-gtest=DIR],
-                                [location of Google Test installation])],
-                [
-                    # --with-gtest is on command line, so we'll make Google
-                    # Test mandatory.
-                    gtest_search_fatal=yes
+                                [location of Google Test installation])])
 
-                    AS_CASE([$with_gtest],
-                            [yes], [
-                                gtest_search=yes
-                                AS_IF([test x"$GTEST_ROOT" = x], [
-                                    AC_MSG_FAILURE([GTEST_ROOT is not set. Set it or provide path with --with-gtest.])
-                                ])
-                            ],
-                            [no], [gtest_search=no],
-                            [
-                                gtest_search=yes
-                                AS_IF([test x"$GTEST_ROOT" != x], [
-                                    AC_MSG_NOTICE([Detected GTEST_ROOT=$GTEST_ROOT, but ignoring in favor of --with-gtest])
-                                ])
-                                GTEST_ROOT=$with_gtest
-                            ])
-                ], [
-                    # --with-gtest is not on command line, so the library is
-                    # optional.
-                    gtest_search_fatal=no
-                    AS_IF([test x"$GTEST_ROOT" != x], [
-                        AC_MSG_NOTICE([Detected GTEST_ROOT=$GTEST_ROOT])
-                        gtest_search=yes
-                    ])
+    AS_CASE([x$with_gtest],
+            [x], [
+                # --with-gtest is not on command line, so the library is
+                # optional.
+                gtest_search_fatal=no
+                AS_IF([test x"$GTEST_ROOT" != x], [
+                    AC_MSG_NOTICE([Detected GTEST_ROOT=$GTEST_ROOT])
+                    gtest_search=yes
                 ])
+            ],
+            [xyes], [
+                gtest_search=yes
+                gtest_search_fatal=yes
+                AS_IF([test x"$GTEST_ROOT" = x], [
+                    AC_MSG_FAILURE([GTEST_ROOT is not set. Set it or provide path with --with-gtest.])
+                ])
+            ],
+            [xno], [gtest_search=no],
+            [
+                gtest_search=yes
+                gtest_search_fatal=yes
+                AS_IF([test x"$GTEST_ROOT" != x], [
+                    AC_MSG_NOTICE([Detected GTEST_ROOT=$GTEST_ROOT, but ignoring in favor of --with-gtest])
+                ])
+                GTEST_ROOT=$with_gtest
+            ])
     AS_IF([test x"$gtest_search" = xyes], [
         AC_ARG_VAR([GTEST_CPPFLAGS], [Preprocessor flags for Google Test])
         AC_ARG_VAR([GTEST_CXXFLAGS], [C++ compiler flags for Google Test])
