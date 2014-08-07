@@ -1,3 +1,9 @@
+# Although the Google Test makefile generates libgtest.a, it also recommends
+# against installing that library to a common location. Instead, it wants
+# each project to use a local copy of the gtest source and build a library
+# from that. Therefore, this macro finds the location of GTEST_ROOT, makes
+# a local symlink for the source code, and arranges to build a local
+# libgtest library that the project will link with.
 AC_DEFUN([RK_LIB_GTEST], [
     AC_REQUIRE([AC_PROG_CXX])
 
@@ -8,20 +14,33 @@ AC_DEFUN([RK_LIB_GTEST], [
                 [AS_HELP_STRING([--with-gtest=DIR],
                                 [location of Google Test installation])],
                 [
-                    # If GTEST_ROOT is set, but --with-gtest is not, then
-                    # pretend we got --with-gtest=$GTEST_ROOT.
-                    AS_IF([test x"$GTEST_ROOT" != x], [
-                        AC_MSG_NOTICE([Detected GTEST_ROOT=$GTEST_ROOT, but overridden by --with-gtest=$with_gtest])
-                        GTEST_ROOT=$with_gtest
-                    ])
-                    AS_CASE([$with_gtest],
-                            [yes], [gtest_search=yes],
-                            [no], [gtest_search=no],
-                            [GTEST_ROOT=$with_gtest; gtest_search=yes])
+                    # --with-gtest is on command line, so we'll make Google
+                    # Test mandatory.
                     gtest_search_fatal=yes
+
+                    AS_CASE([$with_gtest],
+                            [yes], [
+                                gtest_search=yes
+                                AS_IF([test x"$GTEST_ROOT" = x], [
+                                    AC_MSG_FAILURE([GTEST_ROOT is not set. Set it or provide path with --with-gtest.])
+                                ])
+                            ],
+                            [no], [gtest_search=no],
+                            [
+                                gtest_search=yes
+                                AS_IF([test x"$GTEST_ROOT" != x], [
+                                    AC_MSG_NOTICE([Detected GTEST_ROOT=$GTEST_ROOT, but ignoring in favor of --with-gtest])
+                                ])
+                                GTEST_ROOT=$with_gtest
+                            ])
                 ], [
-                    gtest_search=yes
+                    # --with-gtest is not on command line, so the library is
+                    # optional.
                     gtest_search_fatal=no
+                    AS_IF([test x"$GTEST_ROOT" != x], [
+                        AC_MSG_NOTICE([Detected GTEST_ROOT=$GTEST_ROOT])
+                        gtest_search=yes
+                    ])
                 ])
     AS_IF([test x"$gtest_search" = xyes], [
         AC_ARG_VAR([GTEST_CPPFLAGS], [Preprocessor flags for Google Test])
