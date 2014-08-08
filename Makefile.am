@@ -6,7 +6,7 @@ display_float_CPPFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS)
 display_float_LDFLAGS =
 display_float_LDADD =
 
-if USE_GTEST
+if USE_GMOCK
 noinst_LIBRARIES = libgtest-all.a
 nodist_libgtest_all_a_SOURCES = tests/gtest-all.cc
 libgtest_all_a_CPPFLAGS = $(GTEST_CPPFLAGS) -I$(GTEST_ROOT)

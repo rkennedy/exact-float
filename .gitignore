@@ -14,9 +14,10 @@ configure
 depcomp
 display-float
 install-sh
+libgtest-all.a
 missing
 stamp-h1
 test-analyze-float
 test-driver
+tests/gmock-all.cc
 tests/gtest-all.cc
-libgtest-all.a

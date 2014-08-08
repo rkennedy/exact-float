@@ -27,7 +27,10 @@ AX_APPEND_COMPILE_FLAGS([-fexceptions -pedantic], [CXXFLAGS], [$extra_flags])
 # to avoid checking them.
 m4_pushdef([AC_INCLUDES_DEFAULT], [])
 
-RK_LIB_GTEST
+RK_LIB_GMOCK([
+    AC_CONFIG_LINKS([tests/gtest-all.cc:$ac_cv_file_gtest_all_cc
+                     tests/gmock-all.cc:$ac_cv_file_gmock_all_cc])
+])
 
 BOOST_REQUIRE
 
