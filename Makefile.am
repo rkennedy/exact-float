@@ -7,17 +7,20 @@ display_float_LDFLAGS =
 display_float_LDADD =
 
 if USE_GMOCK
-noinst_LIBRARIES = libgtest-all.a
-nodist_libgtest_all_a_SOURCES = tests/gtest-all.cc
-libgtest_all_a_CPPFLAGS = $(GTEST_CPPFLAGS) -I$(GTEST_ROOT)
-libgtest_all_a_CXXFLAGS = $(GTEST_CXXFLAGS)
+noinst_LIBRARIES = libgtest.a libgmock.a
+nodist_libgtest_a_SOURCES = tests/gtest-all.cc
+libgtest_a_CPPFLAGS = $(GTEST_CPPFLAGS) -I$(GTEST_ROOT)
+libgtest_a_CXXFLAGS = $(GTEST_CXXFLAGS)
+nodist_libgmock_a_SOURCES = tests/gmock-all.cc
+libgmock_a_CPPFLAGS = $(GMOCK_CPPFLAGS) -I$(GMOCK_ROOT) $(GTEST_CPPFLAGS)
+libgmock_a_CXXFLAGS = $(GMOCK_CXXFLAGS) $(GTEST_CXXFLAGS)
 
 noinst_PROGRAMS = test-analyze-float
 test_analyze_float_SOURCES = tests/test-analyze-float.cpp
-test_analyze_float_CPPFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(GTEST_CPPFLAGS)
-test_analyze_float_CXXFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(GTEST_CXXFLAGS)
-test_analyze_float_LDFLAGS = $(GTEST_LDFLAGS)
-test_analyze_float_LDADD = $(GTEST_LIBS) libgtest-all.a
+test_analyze_float_CPPFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(GTEST_CPPFLAGS) $(GMOCK_CPPFLAGS)
+test_analyze_float_CXXFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(GTEST_CXXFLAGS) $(GMOCK_CXXFLAGS)
+test_analyze_float_LDFLAGS = $(GTEST_LDFLAGS) $(GMOCK_LDFLAGS)
+test_analyze_float_LDADD = $(GTEST_LIBS) $(GMOCK_LIBS) libgtest.a libgmock.a
 
 TESTS = test-analyze-float
 endif
