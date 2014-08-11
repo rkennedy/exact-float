@@ -1,6 +1,7 @@
 # Exact floating-point representations
 
-This program takes numbers in string form, converts them to floating-point type, and then displays the exact decimal values they represent. For example:
+This program takes numbers in string form, converts them to floating-point type, and then displays the exact decimal values they represent.
+For example:
 
 ```bash
 $ display-float 0.2
@@ -13,7 +14,8 @@ Output appears using 80-, 64-, and 32-bit float formats.
 
 # Building
 
-To build the program, clone the repository and run `autogen.sh` to set up the build environment. Then run `configure` and ` make`:
+To build the program, clone the repository and run `autogen.sh` to set up the build environment.
+Then run `configure` and ` make`:
 
 ```bash
 $ git clone https://github.com/rkennedy/exact-float.git
@@ -21,4 +23,15 @@ $ cd exact-float
 $ ./autogen.sh
 $ ./configure
 $ make
+```
+
+## Dependencies
+
+This project uses Google Test and Google Mock.
+To build the test program, run `configure` with the `--with-gmock` option or set `GMOCK_ROOT` to the directory where you have Google Mock source code.
+(To use a version of Google Test other than what comes with Mock, use `--with-gtest` or set `GTEST_ROOT` separately.)
+For example:
+
+```bash
+$ ./configure --with-gmock=$HOME/src/gmock-1.7.0
 ```
