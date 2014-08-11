@@ -9,6 +9,8 @@ AC_LANG([C++])
 RK_LIBEXT
 
 AC_PROG_CXX
+AC_PROG_RANLIB
+AM_PROG_AR
 AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
 # Some compilers will ignore options they don't recognize, but we don't want
@@ -25,8 +27,12 @@ AX_APPEND_COMPILE_FLAGS([-fexceptions -pedantic], [CXXFLAGS], [$extra_flags])
 # to avoid checking them.
 m4_pushdef([AC_INCLUDES_DEFAULT], [])
 
+RK_LIB_GMOCK([
+    AC_CONFIG_LINKS([tests/gtest-all.cc:$ac_cv_file_gtest_all_cc
+                     tests/gmock-all.cc:$ac_cv_file_gmock_all_cc])
+])
+
 BOOST_REQUIRE
-BOOST_TEST
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
