@@ -1,4 +1,4 @@
-AC_INIT([display-float], [1.0], [kennedyri@gmail.com], [display-float], [http://github.com/rkennedy/exact-float])
+AC_INIT([Exact floating-point display], [1.0], [kennedyri@gmail.com], [display-float], [http://github.com/rkennedy/exact-float])
 
 AM_INIT_AUTOMAKE([1.13 -Wall no-define foreign std-options subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
