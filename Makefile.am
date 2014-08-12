@@ -2,9 +2,9 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
 bin_PROGRAMS = display-float
 display_float_SOURCES = src/display-float.cpp src/analyze-float.cpp
-display_float_CPPFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS)
-display_float_LDFLAGS =
-display_float_LDADD =
+display_float_CPPFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS)
+display_float_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+display_float_LDADD = $(BOOST_PROGRAM_OPTIONS_LDADD)
 
 if USE_GMOCK
 noinst_LIBRARIES = libgtest.a libgmock.a
