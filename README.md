@@ -35,3 +35,9 @@ For example:
 ```bash
 $ ./configure --with-gmock=$HOME/src/gmock-1.7.0
 ```
+
+# Credit
+
+Much of this code is inspired by the [ExactFloatToStr_JH0][1] project for Delphi by John Herbster.
+
+[1]: http://codecentral.embarcadero.com/Item/19421
