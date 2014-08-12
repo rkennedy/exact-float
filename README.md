@@ -27,7 +27,7 @@ $ make
 
 ## Dependencies
 
-This project uses Google Test and Google Mock.
+This project uses [Google Test][gtest] and [Google Mock][gmock].
 To build the test program, run `configure` with the `--with-gmock` option or set `GMOCK_ROOT` to the directory where you have Google Mock source code.
 (To use a version of Google Test other than what comes with Mock, use `--with-gtest` or set `GTEST_ROOT` separately.)
 For example:
@@ -40,4 +40,6 @@ $ ./configure --with-gmock=$HOME/src/gmock-1.7.0
 
 Much of this code is inspired by the [ExactFloatToStr_JH0][1] project for Delphi by John Herbster.
 
+[gtest]: https://code.google.com/p/googletest/
+[gmock]: https://code.google.com/p/googlemock/
 [1]: http://codecentral.embarcadero.com/Item/19421
