@@ -36,6 +36,19 @@ ExactFloatToStrEx(T const value, char decimal_point = '.', char thousands_sep = 
     }
 }
 
+template <typename T> bool
+print_number(std::string const& arg)
+{
+    try {
+        T const ld = boost::lexical_cast<T>(arg);
+        std::cout << arg << " = " << ExactFloatToStrEx(ld) << std::endl;
+    } catch (boost::bad_lexical_cast const& e) {
+        std::cout << boost::format("%s doesn't look like %s %s.") % arg % float_traits<T>::article % float_traits<T>::name <<std::endl;
+        return true;
+    }
+    return false;
+}
+
 int
 main(int argc, char const* argv[])
 {
@@ -66,27 +79,9 @@ main(int argc, char const* argv[])
         return EXIT_FAILURE;
     bool error = false;
     for (auto arg: args) {
-        try {
-            long double const ld = boost::lexical_cast<long double>(arg);
-            std::cout << arg << " = " << ExactFloatToStrEx(ld) << std::endl;
-        } catch (boost::bad_lexical_cast const& e) {
-            std::cout << arg << " doesn't look like an Extended." << std::endl;
-            error = true;
-        }
-        try {
-            double const d = boost::lexical_cast<double>(arg);
-            std::cout << arg << " = " << ExactFloatToStrEx(d) << std::endl;
-        } catch (boost::bad_lexical_cast const& e) {
-            std::cout << arg << " doesn't look like a Double." << std::endl;
-            error = true;
-        }
-        try {
-            float const f = boost::lexical_cast<float>(arg);
-            std::cout << arg << " = " << ExactFloatToStrEx(f) << std::endl;
-        } catch (boost::bad_lexical_cast const& e) {
-            std::cout << arg << " doesn't look like a Single." << std::endl;
-            error = true;
-        }
+        error |= print_number<long double>(arg);
+        error |= print_number<double>(arg);
+        error |= print_number<float>(arg);
     }
     return error ? EXIT_FAILURE : EXIT_SUCCESS;
 }
