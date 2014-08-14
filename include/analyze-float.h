@@ -44,6 +44,8 @@ struct float_traits<long double>
     static signed const exponent_bias = 16383;
     static bool const implied_one = false;
     typedef Extended record_type;
+    constexpr static char const* const article = "an";
+    constexpr static char const* const name = "Extended";
 };
 
 template <>
@@ -54,6 +56,8 @@ struct float_traits<double>
     static signed const exponent_bias = 1023;
     static bool const implied_one = true;
     typedef std::uint64_t record_type;
+    constexpr static char const* const article = "a";
+    constexpr static char const* const name = "Double";
 };
 
 template <>
@@ -64,6 +68,8 @@ struct float_traits<float>
     static signed const exponent_bias = 127;
     static bool const implied_one = true;
     typedef std::uint32_t record_type;
+    constexpr static char const* const article = "a";
+    constexpr static char const* const name = "Single";
 };
 
 template <typename Float>

@@ -11,6 +11,13 @@
 #include <boost/dynamic_bitset.hpp>
 #include "analyze-float.h"
 
+constexpr char const* const float_traits<long double>::article;
+constexpr char const* const float_traits<long double>::name;
+constexpr char const* const float_traits<double>::article;
+constexpr char const* const float_traits<double>::name;
+constexpr char const* const float_traits<float>::article;
+constexpr char const* const float_traits<float>::name;
+
 template <>
 FloatInfo<long double>::FloatInfo(long double const value):
     helper(value),

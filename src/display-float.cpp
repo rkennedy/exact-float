@@ -2,8 +2,10 @@
 #include <cstddef>
 #include <iostream>
 #include <string>
+#include <vector>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
+#include <boost/program_options.hpp>
 #include "analyze-float.h"
 
 template <typename T>
@@ -34,33 +36,52 @@ ExactFloatToStrEx(T const value, char decimal_point = '.', char thousands_sep = 
     }
 }
 
+template <typename T> bool
+print_number(std::string const& arg)
+{
+    try {
+        T const ld = boost::lexical_cast<T>(arg);
+        std::cout << arg << " = " << ExactFloatToStrEx(ld) << std::endl;
+    } catch (boost::bad_lexical_cast const& e) {
+        std::cout << boost::format("%s doesn't look like %s %s.") % arg % float_traits<T>::article % float_traits<T>::name <<std::endl;
+        return true;
+    }
+    return false;
+}
+
 int
 main(int argc, char const* argv[])
 {
-    if (argc < 2)
+    namespace po = boost::program_options;
+    po::options_description desc("Allowed options");
+    desc.add_options()
+        ("help", "display program help")
+        ("version", "display program version")
+        ("number", po::value<std::vector<std::string>>()->composing(), "floating-point value to display")
+        ;
+    po::positional_options_description pd;
+    pd.add("number", -1);
+    po::variables_map vm;
+    po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
+    po::notify(vm);
+
+    if (vm.count("help")) {
+        std::cout << desc << std::endl;
+        return EXIT_SUCCESS;
+    }
+    if (vm.count("version")) {
+        std::cout << PACKAGE_STRING << std::endl;
+        return EXIT_SUCCESS;
+    }
+    std::vector<std::string> const& args(vm["number"].as<std::vector<std::string>>());
+
+    if (args.empty())
         return EXIT_FAILURE;
-    std::string const arg = argv[1];
     bool error = false;
-    try {
-        long double const ld = boost::lexical_cast<long double>(arg);
-        std::cout << arg << " = " << ExactFloatToStrEx(ld) << std::endl;
-    } catch (boost::bad_lexical_cast const& e) {
-        std::cout << arg << " doesn't look like an Extended." << std::endl;
-        error = true;
-    }
-    try {
-        double const d = boost::lexical_cast<double>(arg);
-        std::cout << arg << " = " << ExactFloatToStrEx(d) << std::endl;
-    } catch (boost::bad_lexical_cast const& e) {
-        std::cout << arg << " doesn't look like a Double." << std::endl;
-        error = true;
-    }
-    try {
-        float const f = boost::lexical_cast<float>(arg);
-        std::cout << arg << " = " << ExactFloatToStrEx(f) << std::endl;
-    } catch (boost::bad_lexical_cast const& e) {
-        std::cout << arg << " doesn't look like a Single." << std::endl;
-        error = true;
+    for (auto arg: args) {
+        error |= print_number<long double>(arg);
+        error |= print_number<double>(arg);
+        error |= print_number<float>(arg);
     }
     return error ? EXIT_FAILURE : EXIT_SUCCESS;
 }
