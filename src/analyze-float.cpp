@@ -18,65 +18,6 @@ constexpr char const* const float_traits<double>::name;
 constexpr char const* const float_traits<float>::article;
 constexpr char const* const float_traits<float>::name;
 
-template <>
-FloatInfo<long double>::FloatInfo(long double const value):
-    helper(value),
-    negative(helper.rec.exponent & 0x8000),
-    exponent(helper.rec.exponent & 0x7fff),
-    mantissa(helper.rec.mantissa)
-{
-    if (exponent == 0x7fff)
-        if (mantissa == 0)
-            number_type = infinity;
-        else {
-            mantissa &= 0x3FFFFFFFFFFFFFFFULL;
-            if ((helper.rec.mantissa & 0x4000000000000000ULL) == 0)
-                number_type = signaling_nan;
-            else if (mantissa == 0)
-                number_type = mantissa == 0 ? indefinite : quiet_nan;
-        }
-    else if (exponent == 0)
-        number_type = mantissa == 0 ? zero : denormal;
-    else
-        number_type = normal;
-}
-
-template <>
-FloatInfo<double>::FloatInfo(double const value):
-    helper(value),
-    negative(helper.rec & 0x8000000000000000ull),
-    exponent((helper.rec & 0x7ff0000000000000ull) >> 52),
-    mantissa(helper.rec & 0x000fffffffffffffull)
-{
-    if (exponent == 0x7ff)
-        if (mantissa == 0)
-            number_type = infinity;
-        else
-            number_type = mantissa & 0x0008000000000000ull ? quiet_nan : signaling_nan;
-    else if (exponent == 0)
-        number_type = mantissa == 0 ? zero : denormal;
-    else
-        number_type = normal;
-}
-
-template <>
-FloatInfo<float>::FloatInfo(float const value):
-    helper(value),
-    negative(helper.rec & 0x80000000),
-    exponent((helper.rec & 0x7f800000) >> 23),
-    mantissa(helper.rec & 0x007fffff)
-{
-    if (exponent == 0xff)
-        if (mantissa == 0)
-            number_type = infinity;
-        else
-            number_type = mantissa & 0x00400000 ? quiet_nan : signaling_nan;
-    else if (exponent == 0)
-        number_type = mantissa == 0 ? zero : denormal;
-    else
-        number_type = normal;
-}
-
 namespace {
 
 bitset::size_type

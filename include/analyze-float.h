@@ -34,6 +34,9 @@ struct float_traits
     static signed const exponent_bias;
     static bool const implied_one;
     // typedef <unspecified> record_type;
+    // int is_negative(record_type const&);
+    // int get_exponent(record_type const&);
+    // int get_mantissa(record_type const&);
 };
 
 template <>
@@ -43,7 +46,20 @@ struct float_traits<long double>
     static unsigned const exponent_bits = 15;
     static signed const exponent_bias = 16383;
     static bool const implied_one = false;
+    static bool const has_indefinite = true;
     typedef Extended record_type;
+    static bool is_negative(record_type const& rec) {
+        return rec.exponent & 0x8000;
+    }
+    static uint16_t get_exponent(record_type const& rec) {
+        return rec.exponent & 0x7fff;
+    }
+    static uint64_t get_mantissa(record_type const& rec) {
+        return rec.mantissa;
+    }
+    static uint16_t const max_exponent = 0x7fff;
+    static uint64_t const quiet_mask = 0x4000000000000000ull;
+    static uint64_t const mantissa_mask = 0x3FFFFFFFFFFFFFFFull;
     constexpr static char const* const article = "an";
     constexpr static char const* const name = "Extended";
 };
@@ -55,7 +71,20 @@ struct float_traits<double>
     static unsigned const exponent_bits = 11;
     static signed const exponent_bias = 1023;
     static bool const implied_one = true;
+    static bool const has_indefinite = false;
     typedef std::uint64_t record_type;
+    static bool is_negative(record_type const& rec) {
+        return rec & 0x8000000000000000ull;
+    }
+    static uint16_t get_exponent(record_type const& rec) {
+        return (rec & 0x7ff0000000000000ull) >> 52;
+    }
+    static uint64_t get_mantissa(record_type const& rec) {
+        return rec & 0x000fffffffffffffull;
+    }
+    static uint16_t const max_exponent = 0x7ff;
+    static uint64_t const quiet_mask = 0x0008000000000000ull;
+    static uint64_t const mantissa_mask = -1;
     constexpr static char const* const article = "a";
     constexpr static char const* const name = "Double";
 };
@@ -67,7 +96,20 @@ struct float_traits<float>
     static unsigned const exponent_bits = 8;
     static signed const exponent_bias = 127;
     static bool const implied_one = true;
+    static bool const has_indefinite = false;
     typedef std::uint32_t record_type;
+    static bool is_negative(record_type const& rec) {
+        return rec & 0x80000000;
+    }
+    static uint16_t get_exponent(record_type const& rec) {
+        return (rec & 0x7f800000) >> 23;
+    }
+    static uint64_t get_mantissa(record_type const& rec) {
+        return rec & 0x007fffff;
+    }
+    static uint16_t const max_exponent = 0xff;
+    static uint64_t const quiet_mask = 0x00400000ull;
+    static uint64_t const mantissa_mask = -1;
     constexpr static char const* const article = "a";
     constexpr static char const* const name = "Single";
 };
@@ -97,7 +139,27 @@ public:
     std::uint64_t mantissa;
     float_type number_type;
 
-    FloatInfo(Float const value);
+    FloatInfo(Float const value):
+        helper(value),
+        negative(float_traits<Float>::is_negative(helper.rec)),
+        exponent(float_traits<Float>::get_exponent(helper.rec)),
+        mantissa(float_traits<Float>::get_mantissa(helper.rec))
+    {
+        if (exponent == float_traits<Float>::max_exponent)
+            if (mantissa == 0)
+                number_type = infinity;
+            else {
+                mantissa &= float_traits<Float>::mantissa_mask;
+                if ((float_traits<Float>::get_mantissa(helper.rec) & float_traits<Float>::quiet_mask) == 0)
+                    number_type = signaling_nan;
+                else if (mantissa == 0)
+                    number_type = (float_traits<Float>::has_indefinite && mantissa == 0) ? indefinite : quiet_nan;
+            }
+        else if (exponent == 0)
+            number_type = mantissa == 0 ? zero : denormal;
+        else
+            number_type = normal;
+    }
 };
 
 std::string
