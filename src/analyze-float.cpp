@@ -109,7 +109,7 @@ template<>
 struct greater_equal<bitset>: public std::binary_function<bitset, bitset, bool>
 {
     greater_equal() { }
-    bool operator()(bitset A, bitset B) const {
+    bool operator()(bitset const& A, bitset B) const {
         bitset::size_type const b_size = find_last(B);
         if (b_size == bitset::npos)
             return true;
