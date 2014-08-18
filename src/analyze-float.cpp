@@ -154,7 +154,7 @@ Multiply(bitset A, bitset const& B)
                 bool carry = false;
                 for (size_t j = 0; j < a_size; ++j)
                     std::make_tuple(Product[j], std::ref(carry)) = one_bit_add(A[j], Product[j], carry);
-                   if (carry)
+                if (carry)
                     Product.push_back(1);
             }
         }
