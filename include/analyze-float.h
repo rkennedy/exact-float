@@ -102,6 +102,12 @@ public:
     FloatInfo(Float const value);
 };
 
+template <typename Float>
+FloatInfo<Float> make_float_info(Float f)
+{
+    return FloatInfo<Float>(f);
+}
+
 std::string
 FloatingBinPointToDecStr(std::uint64_t Value, int ValBinExp, bool negative, char decimal_point = '.', char thousands_sep = ' ');
 #endif

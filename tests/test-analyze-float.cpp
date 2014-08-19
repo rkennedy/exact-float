@@ -64,7 +64,7 @@ class SingleClassificationTest: public ::testing::TestWithParam<single_expectati
 
 TEST_P(LongDoubleClassificationTest, identify_values)
 {
-    FloatInfo<long double> const info(GetParam().first);
+    auto const info(make_float_info(GetParam().first));
     EXPECT_THAT(info.negative, GetParam().second.negative);
     EXPECT_THAT(info.exponent, GetParam().second.exponent);
     EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
@@ -73,7 +73,7 @@ TEST_P(LongDoubleClassificationTest, identify_values)
 
 TEST_P(DoubleClassificationTest, identify_values)
 {
-    FloatInfo<double> const info(GetParam().first);
+    auto const info(make_float_info(GetParam().first));
     EXPECT_THAT(info.negative, GetParam().second.negative);
     EXPECT_THAT(info.exponent, GetParam().second.exponent);
     EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
@@ -82,7 +82,7 @@ TEST_P(DoubleClassificationTest, identify_values)
 
 TEST_P(SingleClassificationTest, identify_values)
 {
-    FloatInfo<float> const info(GetParam().first);
+    auto const info(make_float_info(GetParam().first));
     EXPECT_THAT(info.negative, GetParam().second.negative);
     EXPECT_THAT(info.exponent, GetParam().second.exponent);
     EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
