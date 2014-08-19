@@ -11,6 +11,8 @@ typedef boost::dynamic_bitset<std::uint32_t> bitset;
 
 enum float_type { unknown, normal, zero, denormal, indefinite, infinity, quiet_nan, signaling_nan };
 
+std::ostream& operator<<(std::ostream&, float_type);
+
 struct BigEndianExtended
 {
     std::uint16_t exponent;

@@ -18,6 +18,31 @@ constexpr char const* const float_traits<double>::name;
 constexpr char const* const float_traits<float>::article;
 constexpr char const* const float_traits<float>::name;
 
+std::ostream& operator<<(std::ostream& os, float_type const type)
+{
+    switch (type)
+    {
+        case unknown:
+            return os << "unknown";
+        case normal:
+            return os << "normal";
+        case zero:
+            return os << "zero";
+        case denormal:
+            return os << "denormal";
+        case indefinite:
+            return os << "indefinite";
+        case infinity:
+            return os << "infinity";
+        case quiet_nan:
+            return os << "quiet_nan";
+        case signaling_nan:
+            return os << "signaling_nan";
+        default:
+            assert(false);
+    }
+}
+
 template <>
 FloatInfo<long double>::FloatInfo(long double const value):
     helper(value),
