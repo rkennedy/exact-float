@@ -18,6 +18,31 @@ constexpr char const* const float_traits<double>::name;
 constexpr char const* const float_traits<float>::article;
 constexpr char const* const float_traits<float>::name;
 
+std::ostream& operator<<(std::ostream& os, float_type const type)
+{
+    switch (type)
+    {
+        case unknown:
+            return os << "unknown";
+        case normal:
+            return os << "normal";
+        case zero:
+            return os << "zero";
+        case denormal:
+            return os << "denormal";
+        case indefinite:
+            return os << "indefinite";
+        case infinity:
+            return os << "infinity";
+        case quiet_nan:
+            return os << "quiet_nan";
+        case signaling_nan:
+            return os << "signaling_nan";
+        default:
+            assert(false);
+    }
+}
+
 namespace {
 
 bitset::size_type
@@ -50,7 +75,7 @@ template<>
 struct greater_equal<bitset>: public std::binary_function<bitset, bitset, bool>
 {
     greater_equal() { }
-    bool operator()(bitset A, bitset B) const {
+    bool operator()(bitset const& A, bitset B) const {
         bitset::size_type const b_size = find_last(B);
         if (b_size == bitset::npos)
             return true;
@@ -95,7 +120,7 @@ Multiply(bitset A, bitset const& B)
                 bool carry = false;
                 for (size_t j = 0; j < a_size; ++j)
                     std::make_tuple(Product[j], std::ref(carry)) = one_bit_add(A[j], Product[j], carry);
-                   if (carry)
+                if (carry)
                     Product.push_back(1);
             }
         }

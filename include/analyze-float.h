@@ -11,6 +11,8 @@ typedef boost::dynamic_bitset<std::uint32_t> bitset;
 
 enum float_type { unknown, normal, zero, denormal, indefinite, infinity, quiet_nan, signaling_nan };
 
+std::ostream& operator<<(std::ostream&, float_type);
+
 struct BigEndianExtended
 {
     std::uint16_t exponent;
@@ -161,6 +163,12 @@ public:
             number_type = normal;
     }
 };
+
+template <typename Float>
+FloatInfo<Float> make_float_info(Float f)
+{
+    return FloatInfo<Float>(f);
+}
 
 std::string
 FloatingBinPointToDecStr(std::uint64_t Value, int ValBinExp, bool negative, char decimal_point = '.', char thousands_sep = ' ');

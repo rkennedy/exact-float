@@ -12,7 +12,7 @@ template <typename T>
 std::string
 ExactFloatToStrEx(T const value, char decimal_point = '.', char thousands_sep = ' ')
 {
-    FloatInfo<T> const info(value);
+    auto const info(make_float_info(value));
     switch (info.number_type) {
         case normal: {
             std::uint64_t const full_mantissa = (static_cast<std::uint64_t>(1) << (float_traits<T>::mantissa_bits - 1 + float_traits<T>::implied_one)) | info.mantissa;

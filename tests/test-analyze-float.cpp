@@ -1,5 +1,8 @@
 #include "config.h"
+#include <cstdlib>
+#include <cmath>
 #include <tuple>
+#include <limits>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/dynamic_bitset.hpp>
@@ -7,6 +10,7 @@
 #include "src/analyze-float.cpp"
 
 using ::testing::Eq;
+using ::testing::_;
 
 int main(int argc, char* argv[])
 {
@@ -14,67 +18,86 @@ int main(int argc, char* argv[])
     return RUN_ALL_TESTS();
 }
 
-template <typename T>
-class CommonFloatInfoTest: public ::testing::Test
+struct Expectations
+{
+    ::testing::Matcher<bool> negative;
+    ::testing::Matcher<uint16_t> exponent;
+    ::testing::Matcher<uint64_t> mantissa;
+    ::testing::Matcher<float_type> type;
+};
+
+typedef std::map<long double, Expectations> long_double_expectations_t;
+long_double_expectations_t const long_double_expectations {
+    {0, {false, 0, 0, zero}},
+    {1.0, {false, 16383, 0x8000000000000000ull, normal}},
+    {-1, {true, 16383, 0x8000000000000000ull, normal}},
+    // TODO {std::strtold("inf", NULL), {false, _, _, infinity}},
+};
+
+typedef std::map<double, Expectations> double_expectations_t;
+double_expectations_t const double_expectations {
+    {0, {false, 0, 0, zero}},
+    {1.0, {false, 1023, 0, normal}},
+    {-2, {true, 1024, 0, normal}},
+    {std::strtod("inf", NULL), {false, _, _, infinity}},
+};
+
+typedef std::map<float, Expectations> single_expectations_t;
+single_expectations_t const single_expectations {
+    {0, {false, 0, 0, zero}},
+    {1.0, {false, 127, 0, normal}},
+    {-2, {true, 128, 0, normal}},
+    {std::strtof("inf", NULL), {false, _, _, infinity}},
+};
+
+class LongDoubleClassificationTest: public ::testing::TestWithParam<long_double_expectations_t::value_type>
 {
 };
 
-typedef ::testing::Types<long double, double, float> FloatTypes;
-TYPED_TEST_CASE(CommonFloatInfoTest, FloatTypes);
-
-TYPED_TEST(CommonFloatInfoTest, Zero)
+class DoubleClassificationTest: public ::testing::TestWithParam<double_expectations_t::value_type>
 {
-    FloatInfo<TypeParam> const info(0.0);
-    EXPECT_FALSE(info.negative);
-    EXPECT_THAT(info.exponent, Eq(0));
-    EXPECT_THAT(info.mantissa, Eq(0u));
-    EXPECT_THAT(info.number_type, Eq(zero));
+};
+
+class SingleClassificationTest: public ::testing::TestWithParam<single_expectations_t::value_type>
+{
+};
+
+TEST_P(LongDoubleClassificationTest, identify_values)
+{
+    auto const info(make_float_info(GetParam().first));
+    EXPECT_THAT(info.negative, GetParam().second.negative);
+    EXPECT_THAT(info.exponent, GetParam().second.exponent);
+    EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
+    EXPECT_THAT(info.number_type, GetParam().second.type);
 }
 
-TEST(FloatInfoTest, extended_one)
+TEST_P(DoubleClassificationTest, identify_values)
 {
-    FloatInfo<long double> const info(1.0);
-    EXPECT_FALSE(info.negative);
-    EXPECT_THAT(info.exponent, Eq(16383));
-    EXPECT_THAT(info.mantissa, Eq(0x8000000000000000ull));
-    EXPECT_THAT(info.number_type, Eq(normal));
+    auto const info(make_float_info(GetParam().first));
+    EXPECT_THAT(info.negative, GetParam().second.negative);
+    EXPECT_THAT(info.exponent, GetParam().second.exponent);
+    EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
+    EXPECT_THAT(info.number_type, GetParam().second.type);
 }
 
-TEST(FloatInfoTest, double_one)
+TEST_P(SingleClassificationTest, identify_values)
 {
-    FloatInfo<double> const info(1.0);
-    EXPECT_FALSE(info.negative);
-    EXPECT_THAT(info.exponent, Eq(1023));
-    EXPECT_THAT(info.mantissa, Eq(0u));
-    EXPECT_THAT(info.number_type, Eq(normal));
+    auto const info(make_float_info(GetParam().first));
+    EXPECT_THAT(info.negative, GetParam().second.negative);
+    EXPECT_THAT(info.exponent, GetParam().second.exponent);
+    EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
+    EXPECT_THAT(info.number_type, GetParam().second.type);
 }
 
-TEST(FloatInfoTest, single_one)
-{
-    FloatInfo<float> const info(1.0);
-    EXPECT_FALSE(info.negative);
-    EXPECT_THAT(info.exponent, Eq(127));
-    EXPECT_THAT(info.mantissa, Eq(0u));
-    EXPECT_THAT(info.number_type, Eq(normal));
-}
-
-TEST(FloatInfoTest, negative_extended_one)
-{
-    FloatInfo<long double> const info(-1);
-    EXPECT_TRUE(info.negative);
-    EXPECT_THAT(info.exponent, Eq(16383));
-    EXPECT_THAT(info.mantissa, Eq(0x8000000000000000ull));
-    EXPECT_THAT(info.number_type, Eq(normal));
-}
-
-TEST(FloatInfoTest, negative_two_double)
-{
-    FloatInfo<double> const info(-2.0);
-    EXPECT_TRUE(info.negative);
-    EXPECT_THAT(info.exponent, Eq(1024));
-    EXPECT_THAT(info.mantissa, Eq(0u));
-    EXPECT_THAT(info.number_type, Eq(normal));
-}
+INSTANTIATE_TEST_CASE_P(LongDoubleClassifications,
+                        LongDoubleClassificationTest,
+                        ::testing::ValuesIn(long_double_expectations));
+INSTANTIATE_TEST_CASE_P(DoubleClassifications,
+                        DoubleClassificationTest,
+                        ::testing::ValuesIn(double_expectations));
+INSTANTIATE_TEST_CASE_P(SingleClassifications,
+                        SingleClassificationTest,
+                        ::testing::ValuesIn(single_expectations));
 
 TEST(BitsetOpsTest, test_find_last)
 {
