@@ -61,7 +61,6 @@ struct float_traits<long double>
     static uint64_t get_mantissa(record_type const& rec) {
         return rec.mantissa;
     }
-    static uint16_t const max_exponent = 0x7fff;
     static uint64_t const quiet_mask = 0x4000000000000000ull;
     static uint64_t const mantissa_mask = 0x3FFFFFFFFFFFFFFFull;
     constexpr static char const* const article = "an";
@@ -86,7 +85,6 @@ struct float_traits<double>
     static uint64_t get_mantissa(record_type const& rec) {
         return rec & 0x000fffffffffffffull;
     }
-    static uint16_t const max_exponent = 0x7ff;
     static uint64_t const quiet_mask = 0x0008000000000000ull;
     static uint64_t const mantissa_mask = -1;
     constexpr static char const* const article = "a";
@@ -111,7 +109,6 @@ struct float_traits<float>
     static uint64_t get_mantissa(record_type const& rec) {
         return rec & 0x007fffff;
     }
-    static uint16_t const max_exponent = 0xff;
     static uint64_t const quiet_mask = 0x00400000ull;
     static uint64_t const mantissa_mask = -1;
     constexpr static char const* const article = "a";
@@ -149,7 +146,8 @@ public:
         exponent(float_traits<Float>::get_exponent(helper.rec)),
         mantissa(float_traits<Float>::get_mantissa(helper.rec))
     {
-        if (exponent == float_traits<Float>::max_exponent)
+        std::uint16_t const max_exponent = (1 << float_traits<Float>::exponent_bits) - 1;
+        if (exponent == max_exponent)
             if (mantissa == 0)
                 number_type = infinity;
             else {
