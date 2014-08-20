@@ -27,6 +27,8 @@ struct LittleEndianExtended
 typedef boost::mpl::if_c<BOOST_BYTE_ORDER == 1234, LittleEndianExtended, BigEndianExtended>::type Extended;
 static_assert(sizeof(Extended) == sizeof(long double),
               "long double isn't a match for Extended");
+typedef std::uint64_t Double;
+typedef std::uint32_t Single;
 
 template <typename Float>
 struct float_traits
@@ -74,7 +76,7 @@ struct float_traits<double>
     static signed const exponent_bias = 1023;
     static bool const implied_one = true;
     static bool const has_indefinite = false;
-    typedef std::uint64_t record_type;
+    typedef Double record_type;
     static bool is_negative(record_type const& rec) {
         return rec & 0x8000000000000000ull;
     }
@@ -99,7 +101,7 @@ struct float_traits<float>
     static signed const exponent_bias = 127;
     static bool const implied_one = true;
     static bool const has_indefinite = false;
-    typedef std::uint32_t record_type;
+    typedef Single record_type;
     static bool is_negative(record_type const& rec) {
         return rec & 0x80000000;
     }
