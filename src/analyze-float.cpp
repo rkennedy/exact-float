@@ -72,15 +72,15 @@ find_last(std::uint64_t value)
 namespace std {
 
 template<>
-struct greater_equal<bitset>: public std::binary_function<bitset, bitset, bool>
+struct greater_equal<::bitset>: public std::binary_function<::bitset, ::bitset, bool>
 {
     greater_equal() { }
-    bool operator()(bitset const& A, bitset B) const {
-        bitset::size_type const b_size = find_last(B);
-        if (b_size == bitset::npos)
+    bool operator()(::bitset const& A, ::bitset B) const {
+        ::bitset::size_type const b_size = find_last(B);
+        if (b_size == ::bitset::npos)
             return true;
-        bitset::size_type const a_size = find_last(A);
-        if (a_size == bitset::npos)
+        ::bitset::size_type const a_size = find_last(A);
+        if (a_size == ::bitset::npos)
             return false;
         if (a_size > b_size)
             return true;

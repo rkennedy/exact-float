@@ -18,6 +18,30 @@ int main(int argc, char* argv[])
     return RUN_ALL_TESTS();
 }
 
+TEST(ConvFloatRec, convert_extended)
+{
+    EXPECT_THAT(to_float_rec(0.0l), Extended());
+    EXPECT_THAT(to_float_rec(-0.0l), Extended("10000000000000000000000000000000000000000000000000000000000000000000000000000000"));
+    EXPECT_THAT(to_float_rec(1.0l), Extended("00111111111111111000000000000000000000000000000000000000000000000000000000000000"));
+    EXPECT_THAT(to_float_rec(-1.0l), Extended("10111111111111111000000000000000000000000000000000000000000000000000000000000000"));
+}
+
+TEST(ConvFloatRec, convert_double)
+{
+    EXPECT_THAT(to_float_rec(0.0), Double());
+    EXPECT_THAT(to_float_rec(-0.0), Double(0x8000000000000000ull));
+    EXPECT_THAT(to_float_rec(1.0), Double(0x3ff0000000000000ull));
+    EXPECT_THAT(to_float_rec(-1.0), Double(0xbff0000000000000ull));
+}
+
+TEST(ConvFloatRec, convert_single)
+{
+    EXPECT_THAT(to_float_rec(0.0f), Single());
+    EXPECT_THAT(to_float_rec(-0.0f), Single(0x80000000u));
+    EXPECT_THAT(to_float_rec(1.0f), Single(0x3f800000u));
+    EXPECT_THAT(to_float_rec(-1.0f), Single(0xbf800000u));
+}
+
 struct Expectations
 {
     ::testing::Matcher<bool> negative;

@@ -3,8 +3,7 @@
 #undef _GLIBCXX_DEBUG
 #include <cstdint>
 #include <string>
-#include <boost/detail/endian.hpp>
-#include <boost/mpl/if.hpp>
+#include <bitset>
 #include <boost/dynamic_bitset.hpp>
 
 typedef boost::dynamic_bitset<std::uint32_t> bitset;
@@ -13,22 +12,9 @@ enum float_type { unknown, normal, zero, denormal, indefinite, infinity, quiet_n
 
 std::ostream& operator<<(std::ostream&, float_type);
 
-struct BigEndianExtended
-{
-    std::uint16_t exponent;
-    std::uint64_t mantissa;
-};
-struct LittleEndianExtended
-{
-    std::uint64_t mantissa;
-    std::uint16_t exponent;
-};
-
-typedef boost::mpl::if_c<BOOST_BYTE_ORDER == 1234, LittleEndianExtended, BigEndianExtended>::type Extended;
-static_assert(sizeof(Extended) == sizeof(long double),
-              "long double isn't a match for Extended");
-typedef std::uint64_t Double;
-typedef std::uint32_t Single;
+typedef std::bitset<80> Extended;
+typedef std::bitset<64> Double;
+typedef std::bitset<32> Single;
 
 template <typename Float>
 struct float_traits
@@ -53,13 +39,13 @@ struct float_traits<long double>
     static bool const has_indefinite = true;
     typedef Extended record_type;
     static bool is_negative(record_type const& rec) {
-        return rec.exponent & 0x8000;
+        return rec[rec.size() - 1];
     }
     static uint16_t get_exponent(record_type const& rec) {
-        return rec.exponent & 0x7fff;
+        return ((rec >> mantissa_bits) & record_type(0x7fff)).to_ullong();
     }
     static uint64_t get_mantissa(record_type const& rec) {
-        return rec.mantissa;
+        return (rec & record_type(0xffffffffffffffffull)).to_ullong();
     }
     static uint64_t const quiet_mask = 0x4000000000000000ull;
     static uint64_t const mantissa_mask = 0x3FFFFFFFFFFFFFFFull;
@@ -77,13 +63,13 @@ struct float_traits<double>
     static bool const has_indefinite = false;
     typedef Double record_type;
     static bool is_negative(record_type const& rec) {
-        return rec & 0x8000000000000000ull;
+        return rec[rec.size() - 1];
     }
     static uint16_t get_exponent(record_type const& rec) {
-        return (rec & 0x7ff0000000000000ull) >> 52;
+        return ((rec >> mantissa_bits) & record_type(0x7ff)).to_ullong();
     }
     static uint64_t get_mantissa(record_type const& rec) {
-        return rec & 0x000fffffffffffffull;
+        return (rec & record_type(0x000fffffffffffffull)).to_ullong();
     }
     static uint64_t const quiet_mask = 0x0008000000000000ull;
     static uint64_t const mantissa_mask = -1;
@@ -101,13 +87,13 @@ struct float_traits<float>
     static bool const has_indefinite = false;
     typedef Single record_type;
     static bool is_negative(record_type const& rec) {
-        return rec & 0x80000000;
+        return rec[rec.size() - 1];
     }
     static uint16_t get_exponent(record_type const& rec) {
-        return (rec & 0x7f800000) >> 23;
+        return ((rec >> mantissa_bits) & record_type(0xff)).to_ullong();
     }
     static uint64_t get_mantissa(record_type const& rec) {
-        return rec & 0x007fffff;
+        return (rec & record_type(0x007fffff)).to_ullong();
     }
     static uint64_t const quiet_mask = 0x00400000ull;
     static uint64_t const mantissa_mask = -1;
@@ -116,24 +102,22 @@ struct float_traits<float>
 };
 
 template <typename Float>
-union FloatRec
+typename float_traits<Float>::record_type
+to_float_rec(Float const value)
 {
-    Float val;
-    typename float_traits<Float>::record_type rec;
-    FloatRec(Float const value): val(value) { }
-};
-static_assert(sizeof(FloatRec<long double>) == sizeof(long double),
-              "FloatRec has wrong size for long double");
-static_assert(sizeof(FloatRec<double>) == sizeof(double),
-              "FloatRec has wrong size for double");
-static_assert(sizeof(FloatRec<float>) == sizeof(float),
-              "FloatRec has wrong size for float");
+    typename float_traits<Float>::record_type result;
+    auto const v = reinterpret_cast<unsigned char const*>(&value);
+    // TODO: Handle endian variation
+    for (auto i = 0u; i < result.size(); ++i)
+        result[i] = v[i / CHAR_BIT] & (1u << (i % CHAR_BIT));
+    return result;
+}
 
 template <typename Float>
 struct FloatInfo
 {
 private:
-    FloatRec<Float> helper;
+    typename float_traits<Float>::record_type rec;
 public:
     bool negative;
     std::uint16_t exponent;
@@ -141,10 +125,10 @@ public:
     float_type number_type;
 
     FloatInfo(Float const value):
-        helper(value),
-        negative(float_traits<Float>::is_negative(helper.rec)),
-        exponent(float_traits<Float>::get_exponent(helper.rec)),
-        mantissa(float_traits<Float>::get_mantissa(helper.rec))
+        rec(to_float_rec(value)),
+        negative(float_traits<Float>::is_negative(rec)),
+        exponent(float_traits<Float>::get_exponent(rec)),
+        mantissa(float_traits<Float>::get_mantissa(rec))
     {
         std::uint16_t const max_exponent = (1 << float_traits<Float>::exponent_bits) - 1;
         if (exponent == max_exponent)
@@ -152,7 +136,7 @@ public:
                 number_type = infinity;
             else {
                 mantissa &= float_traits<Float>::mantissa_mask;
-                if ((float_traits<Float>::get_mantissa(helper.rec) & float_traits<Float>::quiet_mask) == 0)
+                if ((float_traits<Float>::get_mantissa(rec) & float_traits<Float>::quiet_mask) == 0)
                     number_type = signaling_nan;
                 else if (mantissa == 0)
                     number_type = (float_traits<Float>::has_indefinite && mantissa == 0) ? indefinite : quiet_nan;
