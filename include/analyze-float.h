@@ -2,6 +2,7 @@
 #define ANALYZE_FLOAT_H
 #undef _GLIBCXX_DEBUG
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <bitset>
 #include <boost/dynamic_bitset.hpp>
@@ -12,29 +13,24 @@ enum float_type { unknown, normal, zero, denormal, indefinite, infinity, quiet_n
 
 std::ostream& operator<<(std::ostream&, float_type);
 
-typedef std::bitset<80> Extended;
-typedef std::bitset<64> Double;
-typedef std::bitset<32> Single;
-
 template <typename Float>
-struct float_traits
+struct float_traits_base
 {
-    static unsigned const mantissa_bits;
-    static unsigned const exponent_bits;
-    static signed const exponent_bias;
     static bool const implied_one;
-    // typedef <unspecified> record_type;
+    static unsigned const bits;
+    static bool const has_indefinite;
+    static uint64_t const quiet_mask;
+    static uint64_t const mantissa_mask;
+    static char const* const article;
+    static char const* const name;
 };
 
 template <>
-struct float_traits<long double>
+struct float_traits_base<long double>
 {
-    static unsigned const mantissa_bits = 64;
-    static unsigned const exponent_bits = 15;
-    static signed const exponent_bias = 16383;
     static bool const implied_one = false;
+    static unsigned const bits = 80;
     static bool const has_indefinite = true;
-    typedef Extended record_type;
     static uint64_t const quiet_mask = 0x4000000000000000ull;
     static uint64_t const mantissa_mask = 0x3FFFFFFFFFFFFFFFull;
     constexpr static char const* const article = "an";
@@ -42,14 +38,11 @@ struct float_traits<long double>
 };
 
 template <>
-struct float_traits<double>
+struct float_traits_base<double>
 {
-    static unsigned const mantissa_bits = 52;
-    static unsigned const exponent_bits = 11;
-    static signed const exponent_bias = 1023;
     static bool const implied_one = true;
+    static unsigned const bits = 64;
     static bool const has_indefinite = false;
-    typedef Double record_type;
     static uint64_t const quiet_mask = 0x0008000000000000ull;
     static uint64_t const mantissa_mask = -1;
     constexpr static char const* const article = "a";
@@ -57,19 +50,41 @@ struct float_traits<double>
 };
 
 template <>
-struct float_traits<float>
+struct float_traits_base<float>
 {
-    static unsigned const mantissa_bits = 23;
-    static unsigned const exponent_bits = 8;
-    static signed const exponent_bias = 127;
     static bool const implied_one = true;
+    static unsigned const bits = 32;
     static bool const has_indefinite = false;
-    typedef Single record_type;
     static uint64_t const quiet_mask = 0x00400000ull;
     static uint64_t const mantissa_mask = -1;
     constexpr static char const* const article = "a";
     constexpr static char const* const name = "Single";
 };
+
+template <typename Float>
+struct float_traits: float_traits_base<Float>
+{
+    typedef float_traits_base<Float> Base;
+    typedef Float type;
+
+    static unsigned const mantissa_bits = std::numeric_limits<Float>::digits - Base::implied_one;
+    static unsigned const exponent_bits = Base::bits - 1 - mantissa_bits;
+    static unsigned const exponent_bias = (1 << (exponent_bits - 1)) - 1;
+    typedef std::bitset<Base::bits> record_type;
+
+    static uint16_t get_exponent(record_type const& rec) {
+        auto const exponent_mask = std::bitset<exponent_bits>().flip().to_ullong();
+        return ((rec >> mantissa_bits) & record_type(exponent_mask)).to_ullong();
+    }
+    static uint64_t get_mantissa(record_type const& rec) {
+        auto const mantissa_mask = std::bitset<mantissa_bits>().flip().to_ullong();
+        return (rec & record_type(mantissa_mask)).to_ullong();
+    }
+};
+
+typedef typename float_traits<long double>::record_type Extended;
+typedef typename float_traits<double>::record_type Double;
+typedef typename float_traits<float>::record_type Single;
 
 template <typename T>
 bool
@@ -77,17 +92,6 @@ is_negative(T const& rec) {
     return rec[rec.size() - 1];
 }
 
-template <typename Float>
-uint16_t
-get_exponent(typename float_traits<Float>::record_type const& rec) {
-    return ((rec >> float_traits<Float>::mantissa_bits) & typename float_traits<Float>::record_type(std::bitset<float_traits<Float>::exponent_bits>().flip().to_ullong())).to_ullong();
-}
-
-template <typename Float>
-uint64_t
-get_mantissa(typename float_traits<Float>::record_type const& rec) {
-    return (rec & typename float_traits<Float>::record_type(std::bitset<float_traits<Float>::mantissa_bits>().flip().to_ullong())).to_ullong();
-}
 template <typename Float>
 typename float_traits<Float>::record_type
 to_float_rec(Float const value)
@@ -114,8 +118,8 @@ public:
     FloatInfo(Float const value):
         rec(to_float_rec(value)),
         negative(is_negative(rec)),
-        exponent(get_exponent<Float>(rec)),
-        mantissa(get_mantissa<Float>(rec))
+        exponent(float_traits<Float>::get_exponent(rec)),
+        mantissa(float_traits<Float>::get_mantissa(rec))
     {
         std::uint16_t const max_exponent = (1 << float_traits<Float>::exponent_bits) - 1;
         if (exponent == max_exponent)
@@ -123,7 +127,7 @@ public:
                 number_type = infinity;
             else {
                 mantissa &= float_traits<Float>::mantissa_mask;
-                if ((get_mantissa<Float>(rec) & float_traits<Float>::quiet_mask) == 0)
+                if ((float_traits<Float>::get_mantissa(rec) & float_traits<Float>::quiet_mask) == 0)
                     number_type = signaling_nan;
                 else if (mantissa == 0)
                     number_type = (float_traits<Float>::has_indefinite && mantissa == 0) ? indefinite : quiet_nan;
