@@ -24,9 +24,6 @@ struct float_traits
     static signed const exponent_bias;
     static bool const implied_one;
     // typedef <unspecified> record_type;
-    // int is_negative(record_type const&);
-    // int get_exponent(record_type const&);
-    // int get_mantissa(record_type const&);
 };
 
 template <>
@@ -38,15 +35,6 @@ struct float_traits<long double>
     static bool const implied_one = false;
     static bool const has_indefinite = true;
     typedef Extended record_type;
-    static bool is_negative(record_type const& rec) {
-        return rec[rec.size() - 1];
-    }
-    static uint16_t get_exponent(record_type const& rec) {
-        return ((rec >> mantissa_bits) & record_type(0x7fff)).to_ullong();
-    }
-    static uint64_t get_mantissa(record_type const& rec) {
-        return (rec & record_type(0xffffffffffffffffull)).to_ullong();
-    }
     static uint64_t const quiet_mask = 0x4000000000000000ull;
     static uint64_t const mantissa_mask = 0x3FFFFFFFFFFFFFFFull;
     constexpr static char const* const article = "an";
@@ -62,15 +50,6 @@ struct float_traits<double>
     static bool const implied_one = true;
     static bool const has_indefinite = false;
     typedef Double record_type;
-    static bool is_negative(record_type const& rec) {
-        return rec[rec.size() - 1];
-    }
-    static uint16_t get_exponent(record_type const& rec) {
-        return ((rec >> mantissa_bits) & record_type(0x7ff)).to_ullong();
-    }
-    static uint64_t get_mantissa(record_type const& rec) {
-        return (rec & record_type(0x000fffffffffffffull)).to_ullong();
-    }
     static uint64_t const quiet_mask = 0x0008000000000000ull;
     static uint64_t const mantissa_mask = -1;
     constexpr static char const* const article = "a";
@@ -86,21 +65,29 @@ struct float_traits<float>
     static bool const implied_one = true;
     static bool const has_indefinite = false;
     typedef Single record_type;
-    static bool is_negative(record_type const& rec) {
-        return rec[rec.size() - 1];
-    }
-    static uint16_t get_exponent(record_type const& rec) {
-        return ((rec >> mantissa_bits) & record_type(0xff)).to_ullong();
-    }
-    static uint64_t get_mantissa(record_type const& rec) {
-        return (rec & record_type(0x007fffff)).to_ullong();
-    }
     static uint64_t const quiet_mask = 0x00400000ull;
     static uint64_t const mantissa_mask = -1;
     constexpr static char const* const article = "a";
     constexpr static char const* const name = "Single";
 };
 
+template <typename T>
+bool
+is_negative(T const& rec) {
+    return rec[rec.size() - 1];
+}
+
+template <typename Float>
+uint16_t
+get_exponent(typename float_traits<Float>::record_type const& rec) {
+    return ((rec >> float_traits<Float>::mantissa_bits) & typename float_traits<Float>::record_type(std::bitset<float_traits<Float>::exponent_bits>().flip().to_ullong())).to_ullong();
+}
+
+template <typename Float>
+uint64_t
+get_mantissa(typename float_traits<Float>::record_type const& rec) {
+    return (rec & typename float_traits<Float>::record_type(std::bitset<float_traits<Float>::mantissa_bits>().flip().to_ullong())).to_ullong();
+}
 template <typename Float>
 typename float_traits<Float>::record_type
 to_float_rec(Float const value)
@@ -126,9 +113,9 @@ public:
 
     FloatInfo(Float const value):
         rec(to_float_rec(value)),
-        negative(float_traits<Float>::is_negative(rec)),
-        exponent(float_traits<Float>::get_exponent(rec)),
-        mantissa(float_traits<Float>::get_mantissa(rec))
+        negative(is_negative(rec)),
+        exponent(get_exponent<Float>(rec)),
+        mantissa(get_mantissa<Float>(rec))
     {
         std::uint16_t const max_exponent = (1 << float_traits<Float>::exponent_bits) - 1;
         if (exponent == max_exponent)
@@ -136,7 +123,7 @@ public:
                 number_type = infinity;
             else {
                 mantissa &= float_traits<Float>::mantissa_mask;
-                if ((float_traits<Float>::get_mantissa(rec) & float_traits<Float>::quiet_mask) == 0)
+                if ((get_mantissa<Float>(rec) & float_traits<Float>::quiet_mask) == 0)
                     number_type = signaling_nan;
                 else if (mantissa == 0)
                     number_type = (float_traits<Float>::has_indefinite && mantissa == 0) ? indefinite : quiet_nan;
