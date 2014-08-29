@@ -6,6 +6,7 @@
 #include <string>
 #include <bitset>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/format.hpp>
 
 typedef boost::dynamic_bitset<std::uint32_t> bitset;
 
@@ -69,7 +70,7 @@ struct float_traits: float_traits_base<Float>
 
     static unsigned const mantissa_bits = std::numeric_limits<Float>::digits - Base::implied_one;
     static unsigned const exponent_bits = Base::bits - 1 - mantissa_bits;
-    static unsigned const exponent_bias = (1 << (exponent_bits - 1)) - 1;
+    static unsigned const exponent_bias = std::numeric_limits<Float>::max_exponent - 1;
     typedef std::bitset<Base::bits> record_type;
 
     static uint16_t get_exponent(record_type const& rec) {
@@ -137,14 +138,45 @@ public:
         else
             number_type = normal;
     }
+
+    FloatInfo(bool negative, std::uint16_t exponent, std::uint64_t mantissa, float_type number_type):
+        rec(), negative(negative), exponent(exponent), mantissa(mantissa), number_type(number_type)
+    { }
 };
 
 template <typename Float>
-FloatInfo<Float> make_float_info(Float f)
+FloatInfo<Float> exact(Float f)
 {
     return FloatInfo<Float>(f);
 }
 
 std::string
 FloatingBinPointToDecStr(std::uint64_t Value, int ValBinExp, bool negative, char decimal_point = '.', char thousands_sep = ' ');
+
+template <typename Float>
+std::ostream&
+operator<<(std::ostream& os, FloatInfo<Float> const& info)
+{
+    switch (info.number_type) {
+        case normal: {
+            std::uint64_t const full_mantissa = (static_cast<std::uint64_t>(1) << (float_traits<Float>::mantissa_bits - 1 + float_traits<Float>::implied_one)) | info.mantissa;
+            return os << FloatingBinPointToDecStr(full_mantissa, info.exponent - float_traits<Float>::exponent_bias - (float_traits<Float>::mantissa_bits - 1 + float_traits<Float>::implied_one), info.negative, '.', ' ');
+        }
+        case zero:
+            return os << (info.negative ? "- 0" : "+ 0");
+        case denormal:
+            // TODO!
+            return os << FloatingBinPointToDecStr(info.mantissa, -float_traits<Float>::exponent_bias - (float_traits<Float>::mantissa_bits - 2), info.negative, '.', ' ');
+        case indefinite:
+            return os << "Indefinite";
+        case infinity:
+            return os << (info.negative ? "- Infinity" : "+ Infinity");
+        case quiet_nan:
+            return os << boost::format("QNaN(%d)") % info.mantissa;
+        case signaling_nan:
+            return os << boost::format("SNaN(%d)") % info.mantissa;
+        default:
+            return os << "unknown-number-type";
+    }
+}
 #endif

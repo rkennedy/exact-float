@@ -6,11 +6,15 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/dynamic_bitset.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/utility/binary.hpp>
 #include "analyze-float.h"
 #include "src/analyze-float.cpp"
 
 using ::testing::Eq;
+using ::testing::StrEq;
 using ::testing::_;
+using ::testing::ResultOf;
 
 int main(int argc, char* argv[])
 {
@@ -88,7 +92,7 @@ class SingleClassificationTest: public ::testing::TestWithParam<single_expectati
 
 TEST_P(LongDoubleClassificationTest, identify_values)
 {
-    auto const info(make_float_info(GetParam().first));
+    auto const info(exact(GetParam().first));
     EXPECT_THAT(info.negative, GetParam().second.negative);
     EXPECT_THAT(info.exponent, GetParam().second.exponent);
     EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
@@ -97,7 +101,7 @@ TEST_P(LongDoubleClassificationTest, identify_values)
 
 TEST_P(DoubleClassificationTest, identify_values)
 {
-    auto const info(make_float_info(GetParam().first));
+    auto const info(exact(GetParam().first));
     EXPECT_THAT(info.negative, GetParam().second.negative);
     EXPECT_THAT(info.exponent, GetParam().second.exponent);
     EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
@@ -106,7 +110,7 @@ TEST_P(DoubleClassificationTest, identify_values)
 
 TEST_P(SingleClassificationTest, identify_values)
 {
-    auto const info(make_float_info(GetParam().first));
+    auto const info(exact(GetParam().first));
     EXPECT_THAT(info.negative, GetParam().second.negative);
     EXPECT_THAT(info.exponent, GetParam().second.exponent);
     EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
@@ -273,3 +277,39 @@ TEST(BitsetOpsTest, test_reduce_binary_exponent)
     EXPECT_THAT(reduce_binary_exponent(bitset(std::string("110")), 0),
                 Eq(bitset(std::string("110"))));
 }
+
+struct SerializationParam
+{
+    bool negative;
+    std::uint16_t exponent;
+    std::uint64_t mantissa;
+    float_type number_type;
+    char const* expectation;
+};
+
+class Serialization: public ::testing::TestWithParam<SerializationParam>
+{
+public:
+    std::ostringstream os;
+    static std::string str(std::ostream const& s) {
+        return dynamic_cast<std::ostringstream const&>(s).str();
+    }
+};
+
+TEST_P(Serialization, test_extended)
+{
+    auto const value = FloatInfo<long double>(GetParam().negative, GetParam().exponent, GetParam().mantissa, GetParam().number_type);
+    EXPECT_THAT(os << value, ResultOf(str, StrEq(GetParam().expectation)));
+}
+
+SerializationParam const extended_serializations[] = {
+    {false, std::numeric_limits<long double>::max_exponent - 1, BOOST_BINARY_ULL(
+            10000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000), normal, "+ 1"},
+    {true, std::numeric_limits<long double>::max_exponent - 1, BOOST_BINARY_ULL(
+            11000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000), normal, "- 1.5"},
+    {false, std::numeric_limits<long double>::max_exponent + 5, BOOST_BINARY_ULL(
+            10101110 10010001 11101011 10000101 00011110 10111000 01010001 11101100), normal, "+ 87.28500 00000 00000 00333 06690 73875 46962 12708 95004 27246 09375"},
+};
+
+INSTANTIATE_TEST_CASE_P(ExtendedSerializations, Serialization,
+                        ::testing::ValuesIn(extended_serializations));

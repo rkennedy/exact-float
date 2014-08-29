@@ -8,40 +8,12 @@
 #include <boost/program_options.hpp>
 #include "analyze-float.h"
 
-template <typename T>
-std::string
-ExactFloatToStrEx(T const value, char decimal_point = '.', char thousands_sep = ' ')
-{
-    auto const info(make_float_info(value));
-    switch (info.number_type) {
-        case normal: {
-            std::uint64_t const full_mantissa = (static_cast<std::uint64_t>(1) << (float_traits<T>::mantissa_bits - 1 + float_traits<T>::implied_one)) | info.mantissa;
-            return FloatingBinPointToDecStr(full_mantissa, info.exponent - float_traits<T>::exponent_bias - (float_traits<T>::mantissa_bits - 1 + float_traits<T>::implied_one), info.negative, decimal_point, thousands_sep);
-        }
-        case zero:
-            return info.negative ? "- 0" : "+ 0";
-        case denormal:
-            // TODO!
-            return FloatingBinPointToDecStr(info.mantissa, -float_traits<T>::exponent_bias - (float_traits<T>::mantissa_bits - 2), info.negative, decimal_point, thousands_sep);
-        case indefinite:
-            return "Indefinite";
-        case infinity:
-            return info.negative ? "- Infinity" : "+ Infinity";
-        case quiet_nan:
-            return (boost::format("QNaN(%d)") % info.mantissa).str();
-        case signaling_nan:
-            return (boost::format("SNaN(%d)") % info.mantissa).str();
-        default:
-            return "unknown-number-type";
-    }
-}
-
 template <typename T> bool
 print_number(std::string const& arg)
 {
     try {
         T const ld = boost::lexical_cast<T>(arg);
-        std::cout << arg << " = " << ExactFloatToStrEx(ld) << std::endl;
+        std::cout << arg << " = " << exact(ld) << std::endl;
     } catch (boost::bad_lexical_cast const& e) {
         std::cout << boost::format("%s doesn't look like %s %s.") % arg % float_traits<T>::article % float_traits<T>::name <<std::endl;
         return true;
