@@ -7,6 +7,7 @@
 #include <bitset>
 #include <boost/dynamic_bitset.hpp>
 #include <boost/format.hpp>
+#include <boost/cstdfloat.hpp>
 
 typedef boost::dynamic_bitset<std::uint32_t> bitset;
 
@@ -26,8 +27,9 @@ struct float_traits_base
     static char const* const name;
 };
 
+#ifdef BOOST_FLOAT80_C
 template <>
-struct float_traits_base<long double>
+struct float_traits_base<boost::float80_t>
 {
     static bool const implied_one = false;
     static unsigned const bits = 80;
@@ -37,9 +39,11 @@ struct float_traits_base<long double>
     constexpr static char const* const article = "an";
     constexpr static char const* const name = "Extended";
 };
+#endif
 
+#ifdef BOOST_FLOAT64_C
 template <>
-struct float_traits_base<double>
+struct float_traits_base<boost::float64_t>
 {
     static bool const implied_one = true;
     static unsigned const bits = 64;
@@ -49,9 +53,11 @@ struct float_traits_base<double>
     constexpr static char const* const article = "a";
     constexpr static char const* const name = "Double";
 };
+#endif
 
+#ifdef BOOST_FLOAT32_C
 template <>
-struct float_traits_base<float>
+struct float_traits_base<boost::float32_t>
 {
     static bool const implied_one = true;
     static unsigned const bits = 32;
@@ -61,6 +67,7 @@ struct float_traits_base<float>
     constexpr static char const* const article = "a";
     constexpr static char const* const name = "Single";
 };
+#endif
 
 template <typename Float>
 struct float_traits: float_traits_base<Float>
@@ -82,10 +89,6 @@ struct float_traits: float_traits_base<Float>
         return (rec & record_type(mantissa_mask)).to_ullong();
     }
 };
-
-typedef typename float_traits<long double>::record_type Extended;
-typedef typename float_traits<double>::record_type Double;
-typedef typename float_traits<float>::record_type Single;
 
 template <typename T>
 bool

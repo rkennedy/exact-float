@@ -51,9 +51,15 @@ main(int argc, char const* argv[])
         return EXIT_FAILURE;
     bool error = false;
     for (auto arg: args) {
-        error |= print_number<long double>(arg);
-        error |= print_number<double>(arg);
-        error |= print_number<float>(arg);
+#ifdef BOOST_FLOAT80_C
+        error |= print_number<boost::float80_t>(arg);
+#endif
+#ifdef BOOST_FLOAT64_C
+        error |= print_number<boost::float64_t>(arg);
+#endif
+#ifdef BOOST_FLOAT32_C
+        error |= print_number<boost::float32_t>(arg);
+#endif
     }
     return error ? EXIT_FAILURE : EXIT_SUCCESS;
 }

@@ -22,28 +22,33 @@ int main(int argc, char* argv[])
     return RUN_ALL_TESTS();
 }
 
+#ifdef BOOST_FLOAT80_C
 TEST(ConvFloatRec, convert_extended)
 {
-    EXPECT_THAT(to_float_rec(0.0l), Extended());
-    EXPECT_THAT(to_float_rec(-0.0l), Extended("10000000000000000000000000000000000000000000000000000000000000000000000000000000"));
-    EXPECT_THAT(to_float_rec(1.0l), Extended("00111111111111111000000000000000000000000000000000000000000000000000000000000000"));
-    EXPECT_THAT(to_float_rec(-1.0l), Extended("10111111111111111000000000000000000000000000000000000000000000000000000000000000"));
+    typedef float_traits<boost::float80_t>::record_type Float;
+    EXPECT_THAT(to_float_rec(0.0l), Float());
+    EXPECT_THAT(to_float_rec(-0.0l), Float("10000000000000000000000000000000000000000000000000000000000000000000000000000000"));
+    EXPECT_THAT(to_float_rec(1.0l), Float("00111111111111111000000000000000000000000000000000000000000000000000000000000000"));
+    EXPECT_THAT(to_float_rec(-1.0l), Float("10111111111111111000000000000000000000000000000000000000000000000000000000000000"));
 }
+#endif
 
 TEST(ConvFloatRec, convert_double)
 {
-    EXPECT_THAT(to_float_rec(0.0), Double());
-    EXPECT_THAT(to_float_rec(-0.0), Double(0x8000000000000000ull));
-    EXPECT_THAT(to_float_rec(1.0), Double(0x3ff0000000000000ull));
-    EXPECT_THAT(to_float_rec(-1.0), Double(0xbff0000000000000ull));
+    typedef float_traits<boost::float64_t>::record_type Float;
+    EXPECT_THAT(to_float_rec(0.0), Float());
+    EXPECT_THAT(to_float_rec(-0.0), Float(0x8000000000000000ull));
+    EXPECT_THAT(to_float_rec(1.0), Float(0x3ff0000000000000ull));
+    EXPECT_THAT(to_float_rec(-1.0), Float(0xbff0000000000000ull));
 }
 
 TEST(ConvFloatRec, convert_single)
 {
-    EXPECT_THAT(to_float_rec(0.0f), Single());
-    EXPECT_THAT(to_float_rec(-0.0f), Single(0x80000000u));
-    EXPECT_THAT(to_float_rec(1.0f), Single(0x3f800000u));
-    EXPECT_THAT(to_float_rec(-1.0f), Single(0xbf800000u));
+    typedef float_traits<boost::float32_t>::record_type Float;
+    EXPECT_THAT(to_float_rec(0.0f), Float());
+    EXPECT_THAT(to_float_rec(-0.0f), Float(0x80000000u));
+    EXPECT_THAT(to_float_rec(1.0f), Float(0x3f800000u));
+    EXPECT_THAT(to_float_rec(-1.0f), Float(0xbf800000u));
 }
 
 struct Expectations
@@ -54,7 +59,8 @@ struct Expectations
     ::testing::Matcher<float_type> type;
 };
 
-typedef std::map<long double, Expectations> long_double_expectations_t;
+#ifdef BOOST_FLOAT80_C
+typedef std::map<boost::float80_t, Expectations> long_double_expectations_t;
 long_double_expectations_t const long_double_expectations {
     {0, {false, 0, 0, zero}},
     {1.0, {false, 16383, 0x8000000000000000ull, normal}},
@@ -62,7 +68,13 @@ long_double_expectations_t const long_double_expectations {
     // TODO {std::strtold("inf", NULL), {false, _, _, infinity}},
 };
 
-typedef std::map<double, Expectations> double_expectations_t;
+class LongDoubleClassificationTest: public ::testing::TestWithParam<long_double_expectations_t::value_type>
+{
+};
+#endif
+
+#ifdef BOOST_FLOAT64_C
+typedef std::map<boost::float64_t, Expectations> double_expectations_t;
 double_expectations_t const double_expectations {
     {0, {false, 0, 0, zero}},
     {1.0, {false, 1023, 0, normal}},
@@ -70,7 +82,13 @@ double_expectations_t const double_expectations {
     {std::strtod("inf", NULL), {false, _, _, infinity}},
 };
 
-typedef std::map<float, Expectations> single_expectations_t;
+class DoubleClassificationTest: public ::testing::TestWithParam<double_expectations_t::value_type>
+{
+};
+#endif
+
+#ifdef BOOST_FLOAT32_C
+typedef std::map<boost::float32_t, Expectations> single_expectations_t;
 single_expectations_t const single_expectations {
     {0, {false, 0, 0, zero}},
     {1.0, {false, 127, 0, normal}},
@@ -78,37 +96,13 @@ single_expectations_t const single_expectations {
     {std::strtof("inf", NULL), {false, _, _, infinity}},
 };
 
-class LongDoubleClassificationTest: public ::testing::TestWithParam<long_double_expectations_t::value_type>
-{
-};
-
-class DoubleClassificationTest: public ::testing::TestWithParam<double_expectations_t::value_type>
-{
-};
-
 class SingleClassificationTest: public ::testing::TestWithParam<single_expectations_t::value_type>
 {
 };
+#endif
 
+#ifdef BOOST_FLOAT80_C
 TEST_P(LongDoubleClassificationTest, identify_values)
-{
-    auto const info(exact(GetParam().first));
-    EXPECT_THAT(info.negative, GetParam().second.negative);
-    EXPECT_THAT(info.exponent, GetParam().second.exponent);
-    EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
-    EXPECT_THAT(info.number_type, GetParam().second.type);
-}
-
-TEST_P(DoubleClassificationTest, identify_values)
-{
-    auto const info(exact(GetParam().first));
-    EXPECT_THAT(info.negative, GetParam().second.negative);
-    EXPECT_THAT(info.exponent, GetParam().second.exponent);
-    EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
-    EXPECT_THAT(info.number_type, GetParam().second.type);
-}
-
-TEST_P(SingleClassificationTest, identify_values)
 {
     auto const info(exact(GetParam().first));
     EXPECT_THAT(info.negative, GetParam().second.negative);
@@ -120,12 +114,37 @@ TEST_P(SingleClassificationTest, identify_values)
 INSTANTIATE_TEST_CASE_P(LongDoubleClassifications,
                         LongDoubleClassificationTest,
                         ::testing::ValuesIn(long_double_expectations));
+#endif
+
+#ifdef BOOST_FLOAT64_C
+TEST_P(DoubleClassificationTest, identify_values)
+{
+    auto const info(exact(GetParam().first));
+    EXPECT_THAT(info.negative, GetParam().second.negative);
+    EXPECT_THAT(info.exponent, GetParam().second.exponent);
+    EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
+    EXPECT_THAT(info.number_type, GetParam().second.type);
+}
+
 INSTANTIATE_TEST_CASE_P(DoubleClassifications,
                         DoubleClassificationTest,
                         ::testing::ValuesIn(double_expectations));
+#endif
+
+#ifdef BOOST_FLOAT32_T
+TEST_P(SingleClassificationTest, identify_values)
+{
+    auto const info(exact(GetParam().first));
+    EXPECT_THAT(info.negative, GetParam().second.negative);
+    EXPECT_THAT(info.exponent, GetParam().second.exponent);
+    EXPECT_THAT(info.mantissa, GetParam().second.mantissa);
+    EXPECT_THAT(info.number_type, GetParam().second.type);
+}
+
 INSTANTIATE_TEST_CASE_P(SingleClassifications,
                         SingleClassificationTest,
                         ::testing::ValuesIn(single_expectations));
+#endif
 
 TEST(BitsetOpsTest, test_find_last)
 {
@@ -296,20 +315,22 @@ public:
     }
 };
 
+#ifdef BOOST_FLOAT80_C
 TEST_P(Serialization, test_extended)
 {
-    auto const value = FloatInfo<long double>(GetParam().negative, GetParam().exponent, GetParam().mantissa, GetParam().number_type);
+    auto const value = FloatInfo<boost::float80_t>(GetParam().negative, GetParam().exponent, GetParam().mantissa, GetParam().number_type);
     EXPECT_THAT(os << value, ResultOf(str, StrEq(GetParam().expectation)));
 }
 
 SerializationParam const extended_serializations[] = {
-    {false, std::numeric_limits<long double>::max_exponent - 1, BOOST_BINARY_ULL(
+    {false, std::numeric_limits<boost::float80_t>::max_exponent - 1, BOOST_BINARY_ULL(
             10000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000), normal, "+ 1"},
-    {true, std::numeric_limits<long double>::max_exponent - 1, BOOST_BINARY_ULL(
+    {true, std::numeric_limits<boost::float80_t>::max_exponent - 1, BOOST_BINARY_ULL(
             11000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000), normal, "- 1.5"},
-    {false, std::numeric_limits<long double>::max_exponent + 5, BOOST_BINARY_ULL(
+    {false, std::numeric_limits<boost::float80_t>::max_exponent + 5, BOOST_BINARY_ULL(
             10101110 10010001 11101011 10000101 00011110 10111000 01010001 11101100), normal, "+ 87.28500 00000 00000 00333 06690 73875 46962 12708 95004 27246 09375"},
 };
 
 INSTANTIATE_TEST_CASE_P(ExtendedSerializations, Serialization,
                         ::testing::ValuesIn(extended_serializations));
+#endif

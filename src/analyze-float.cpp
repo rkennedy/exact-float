@@ -11,12 +11,18 @@
 #include <boost/dynamic_bitset.hpp>
 #include "analyze-float.h"
 
-constexpr char const* const float_traits_base<long double>::article;
-constexpr char const* const float_traits_base<long double>::name;
-constexpr char const* const float_traits_base<double>::article;
-constexpr char const* const float_traits_base<double>::name;
-constexpr char const* const float_traits_base<float>::article;
-constexpr char const* const float_traits_base<float>::name;
+#ifdef BOOST_FLOAT80_C
+constexpr char const* const float_traits_base<boost::float80_t>::article;
+constexpr char const* const float_traits_base<boost::float80_t>::name;
+#endif
+#ifdef BOOST_FLOAT64_C
+constexpr char const* const float_traits_base<boost::float64_t>::article;
+constexpr char const* const float_traits_base<boost::float64_t>::name;
+#endif
+#ifdef BOOST_FLOAT32_C
+constexpr char const* const float_traits_base<boost::float32_t>::article;
+constexpr char const* const float_traits_base<boost::float32_t>::name;
+#endif
 
 std::ostream& operator<<(std::ostream& os, float_type const type)
 {
