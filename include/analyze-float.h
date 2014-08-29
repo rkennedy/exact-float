@@ -5,11 +5,8 @@
 #include <limits>
 #include <string>
 #include <bitset>
-#include <boost/dynamic_bitset.hpp>
 #include <boost/format.hpp>
 #include <boost/cstdfloat.hpp>
-
-typedef boost::dynamic_bitset<std::uint32_t> bitset;
 
 enum float_type { unknown, normal, zero, denormal, indefinite, infinity, quiet_nan, signaling_nan };
 
