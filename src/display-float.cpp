@@ -6,20 +6,34 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include <boost/program_options.hpp>
+#include <boost/mpl/vector.hpp>
+#include <boost/mpl/for_each.hpp>
 #include "analyze-float.h"
 
-template <typename T> bool
-print_number(std::string const& arg)
+struct print_number
 {
-    try {
-        T const ld = boost::lexical_cast<T>(arg);
-        std::cout << arg << " = " << exact(ld) << std::endl;
-    } catch (boost::bad_lexical_cast const& e) {
-        std::cout << boost::format("%s doesn't look like %s %s.") % arg % float_traits<T>::article % float_traits<T>::name <<std::endl;
-        return true;
+private:
+    std::string const& m_arg;
+    bool& m_error;
+public:
+    print_number(std::string const& arg, bool& error):
+        m_arg(arg), m_error(error)
+    { }
+
+    void operator()(int) { }
+
+    template <typename T>
+    void operator()(T)
+    {
+        try {
+            T const ld = boost::lexical_cast<T>(m_arg);
+            std::cout << m_arg << " = " << exact(ld) << std::endl;
+        } catch (boost::bad_lexical_cast const& e) {
+            std::cout << boost::format("%s doesn't look like %s %s.") % m_arg % float_traits<T>::article % float_traits<T>::name <<std::endl;
+            m_error |= true;
+        }
     }
-    return false;
-}
+};
 
 int
 main(int argc, char const* argv[])
@@ -51,15 +65,18 @@ main(int argc, char const* argv[])
         return EXIT_FAILURE;
     bool error = false;
     for (auto arg: args) {
+        boost::mpl::for_each<boost::mpl::vector<
 #ifdef BOOST_FLOAT80_C
-        error |= print_number<boost::float80_t>(arg);
+            boost::float80_t,
 #endif
 #ifdef BOOST_FLOAT64_C
-        error |= print_number<boost::float64_t>(arg);
+            boost::float64_t,
 #endif
 #ifdef BOOST_FLOAT32_C
-        error |= print_number<boost::float32_t>(arg);
+            boost::float32_t,
 #endif
+            int
+        >::type>(print_number(arg, error));
     }
     return error ? EXIT_FAILURE : EXIT_SUCCESS;
 }
