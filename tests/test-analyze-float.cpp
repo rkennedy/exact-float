@@ -201,35 +201,119 @@ INSTANTIATE_TEST_CASE_P(SingleClassifications,
                         ::testing::ValuesIn(single_expectations));
 #endif
 
-TEST(BitsetOpsTest, test_minimize_mantissa)
+struct MinimizeCase
 {
-    EXPECT_THAT(minimize_mantissa(BOOST_BINARY(011000), 3),
-                Eq(std::make_tuple(BOOST_BINARY(011000), 3)));
-    EXPECT_THAT(minimize_mantissa(BOOST_BINARY(0100), -3),
-                Eq(std::make_tuple(BOOST_BINARY(0001), -1)));
-    EXPECT_THAT(minimize_mantissa(BOOST_BINARY(110000), -3),
-                Eq(std::make_tuple(BOOST_BINARY(000110), 0)));
+    mp::cpp_int mantissa;
+    int bin_exp;
+    ::testing::Matcher<mp::cpp_int> new_mantissa;
+    ::testing::Matcher<int> new_bin_exp;
+};
+
+std::ostream& operator<<(std::ostream& os, MinimizeCase const& mincase)
+{
+    os << "man: " << mincase.mantissa << "; binexp: " << mincase.bin_exp << "; new mantissa ";
+    mincase.new_mantissa.DescribeTo(&os);
+    os << "; new exponent ";
+    mincase.new_bin_exp.DescribeTo(&os);
+    return os;
 }
 
-TEST(BitsetOpsTest, test_remove_fraction)
+class TestMinimizeMantissa: public ::testing::TestWithParam<MinimizeCase>
 {
-    EXPECT_THAT(remove_fraction(2, -4),
-                Eq(std::make_tuple((1*5*5*5*5) * 2, 0, -4)));
-    EXPECT_THAT(remove_fraction(3, 0),
-                Eq(std::make_tuple(3, 0, 0)));
-    EXPECT_THAT(remove_fraction(4, 6),
-                Eq(std::make_tuple(4, 6, 0)));
+};
+
+TEST_P(TestMinimizeMantissa, test)
+{
+    auto const result = minimize_mantissa(GetParam().mantissa, GetParam().bin_exp);
+    EXPECT_THAT(std::get<0>(result), GetParam().new_mantissa);
+    EXPECT_THAT(std::get<1>(result), GetParam().new_bin_exp);
 }
 
-TEST(BitsetOpsTest, test_reduce_binary_exponent)
+MinimizeCase const minimize_cases[] {
+    {BOOST_BINARY(011000), 3, mp::cpp_int(BOOST_BINARY(11000)), 3},
+    {BOOST_BINARY(0100), -3, mp::cpp_int(BOOST_BINARY(1)), -1},
+    {BOOST_BINARY(110000), -3, mp::cpp_int(BOOST_BINARY(000110)), 0},
+};
+
+INSTANTIATE_TEST_CASE_P(MinimizeCases,
+                        TestMinimizeMantissa,
+                        ::testing::ValuesIn(minimize_cases));
+
+struct RemoveFractionCase
 {
-    EXPECT_THAT(reduce_binary_exponent(BOOST_BINARY(1100), 4),
-                Eq(BOOST_BINARY(11000000)));
-    EXPECT_THAT(reduce_binary_exponent(BOOST_BINARY(1100), 1),
-                Eq(BOOST_BINARY(11000)));
-    EXPECT_THAT(reduce_binary_exponent(BOOST_BINARY(110), 0),
-                Eq(BOOST_BINARY(110)));
+    mp::cpp_int mantissa;
+    int bin_exp;
+    ::testing::Matcher<mp::cpp_int> new_mantissa;
+    ::testing::Matcher<int> new_bin_exp;
+    ::testing::Matcher<int> new_dec_exp;
+};
+
+std::ostream& operator<<(std::ostream& os, RemoveFractionCase const& rem)
+{
+    os << "man: " << rem.mantissa << "; exp: " << rem.bin_exp << "; new mantissa ";
+    rem.new_mantissa.DescribeTo(&os);
+    os << "; new bin exp ";
+    rem.new_bin_exp.DescribeTo(&os);
+    os << "; new dec exp ";
+    rem.new_dec_exp.DescribeTo(&os);
+    return os;
 }
+
+class TestRemoveFraction: public ::testing::TestWithParam<RemoveFractionCase>
+{
+};
+
+TEST_P(TestRemoveFraction, test)
+{
+    auto const result = remove_fraction(GetParam().mantissa, GetParam().bin_exp);
+    EXPECT_THAT(std::get<0>(result), GetParam().new_mantissa);
+    EXPECT_THAT(std::get<1>(result), GetParam().new_bin_exp);
+    EXPECT_THAT(std::get<2>(result), GetParam().new_dec_exp);
+}
+
+RemoveFractionCase const remove_cases[] {
+    {2, -4, mp::cpp_int(5*5*5*5*2), 0, -4},
+    {3, 0, mp::cpp_int(3), 0, 0},
+    {4, 6, mp::cpp_int(4), 6, 0},
+};
+
+INSTANTIATE_TEST_CASE_P(RemoveCases,
+                        TestRemoveFraction,
+                        ::testing::ValuesIn(remove_cases));
+
+struct ReduceCase
+{
+    mp::cpp_int mantissa;
+    int bin_exp;
+    ::testing::Matcher<mp::cpp_int> new_mantissa;
+};
+
+std::ostream& operator<<(std::ostream& os, ReduceCase const& redcase)
+{
+    os << "man: " << redcase.mantissa << "; exp: " << redcase.bin_exp << "; new mantissa ";
+    redcase.new_mantissa.DescribeTo(&os);
+    return os;
+}
+
+class TestReduceExponent: public ::testing::TestWithParam<ReduceCase>
+{
+};
+
+TEST_P(TestReduceExponent, test)
+{
+    auto const result = reduce_binary_exponent(GetParam().mantissa, GetParam().bin_exp);
+    EXPECT_THAT(result, GetParam().new_mantissa);
+}
+
+ReduceCase const reduce_cases[] {
+    {BOOST_BINARY(1100), 4, mp::cpp_int(BOOST_BINARY(11000000))},
+    {BOOST_BINARY(1100), 1, mp::cpp_int(BOOST_BINARY(11000))},
+    {BOOST_BINARY(110), 0, mp::cpp_int(BOOST_BINARY(110))},
+};
+
+INSTANTIATE_TEST_CASE_P(ReduceCases,
+                        TestReduceExponent,
+                        ::testing::ValuesIn(reduce_cases));
 
 struct SerializationParam
 {
