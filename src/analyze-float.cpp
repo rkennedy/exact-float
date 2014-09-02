@@ -118,7 +118,7 @@ reduce_binary_exponent(mp::cpp_int Man, int BinExp)
 
 // Value = Mantissa * 2^BinExp * 10^DecExp
 std::string
-FloatingBinPointToDecStr(std::uint64_t Value, int BinExp, bool negative, char decimal_point /*= '.'*/, char thousands_sep /*= ' '*/)
+FloatingBinPointToDecStr(mp::cpp_int Value, int BinExp, bool negative, char decimal_point /*= '.'*/, char thousands_sep /*= ' '*/)
 {
     mp::cpp_int Man = Value;
 

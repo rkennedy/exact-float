@@ -5,7 +5,6 @@
 #include <limits>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include <boost/lexical_cast.hpp>
 #include <boost/utility/binary.hpp>
 #include "analyze-float.h"
 #include "src/analyze-float.cpp"
@@ -14,6 +13,7 @@ using ::testing::Eq;
 using ::testing::StrEq;
 using ::testing::_;
 using ::testing::ResultOf;
+using namespace boost::multiprecision::literals;
 
 int main(int argc, char* argv[])
 {
@@ -24,83 +24,50 @@ int main(int argc, char* argv[])
 #ifdef BOOST_FLOAT80_C
 TEST(ConvFloatRec, convert_extended)
 {
-    typedef float_traits<boost::float80_t>::record_type Float;
-    EXPECT_THAT(to_float_rec(0.0l), Float());
-    EXPECT_THAT(to_float_rec(-0.0l), Float("10000000000000000000000000000000000000000000000000000000000000000000000000000000"));
-    EXPECT_THAT(to_float_rec(1.0l), Float("00111111111111111000000000000000000000000000000000000000000000000000000000000000"));
-    EXPECT_THAT(to_float_rec(-1.0l), Float("10111111111111111000000000000000000000000000000000000000000000000000000000000000"));
+    EXPECT_THAT(to_float_rec(0.0l), 0x0_cppui);
+    EXPECT_THAT(to_float_rec(-0.0l), 0x80000000000000000000_cppui);
+    EXPECT_THAT(to_float_rec(1.0l), 0x3fff8000000000000000_cppui);
+    EXPECT_THAT(to_float_rec(-1.0l), 0xbfff8000000000000000_cppui);
 }
 #endif
 
 TEST(ConvFloatRec, convert_double)
 {
-    typedef float_traits<boost::float64_t>::record_type Float;
-    EXPECT_THAT(to_float_rec(0.0), Float());
-    EXPECT_THAT(to_float_rec(-0.0), Float(0x8000000000000000ull));
-    EXPECT_THAT(to_float_rec(1.0), Float(0x3ff0000000000000ull));
-    EXPECT_THAT(to_float_rec(-1.0), Float(0xbff0000000000000ull));
+    EXPECT_THAT(to_float_rec(0.0), 0x0_cppui);
+    EXPECT_THAT(to_float_rec(-0.0), 0x8000000000000000_cppui);
+    EXPECT_THAT(to_float_rec(1.0), 0x3ff0000000000000_cppui);
+    EXPECT_THAT(to_float_rec(-1.0), 0xbff0000000000000_cppui);
 }
 
 TEST(ConvFloatRec, convert_single)
 {
-    typedef float_traits<boost::float32_t>::record_type Float;
-    EXPECT_THAT(to_float_rec(0.0f), Float());
-    EXPECT_THAT(to_float_rec(-0.0f), Float(0x80000000u));
-    EXPECT_THAT(to_float_rec(1.0f), Float(0x3f800000u));
-    EXPECT_THAT(to_float_rec(-1.0f), Float(0xbf800000u));
+    EXPECT_THAT(to_float_rec(0.0f), 0x0_cppui);
+    EXPECT_THAT(to_float_rec(-0.0f), 0x80000000_cppui);
+    EXPECT_THAT(to_float_rec(1.0f), 0x3f800000_cppui);
+    EXPECT_THAT(to_float_rec(-1.0f), 0xbf800000_cppui);
 }
 
 struct Expectations
 {
     ::testing::Matcher<bool> negative;
-    ::testing::Matcher<uint16_t> exponent;
-    ::testing::Matcher<uint64_t> mantissa;
+    ::testing::Matcher<mp::cpp_int> exponent;
+    ::testing::Matcher<mp::cpp_int> mantissa;
     ::testing::Matcher<float_type> type;
 };
 
 #ifdef BOOST_FLOAT80_C
 typedef std::map<boost::float80_t, Expectations> long_double_expectations_t;
 long_double_expectations_t const long_double_expectations {
-    {0, {false, 0, 0, zero}},
-    {1.0, {false, 16383, 0x8000000000000000ull, normal}},
-    {-1, {true, 16383, 0x8000000000000000ull, normal}},
+    {0.0l, {false, Eq(0), Eq(0), zero}},
+    {1.0l, {false, Eq(16383), Eq(0x8000000000000000ull), normal}},
+    {-1.0l, {true, Eq(16383), Eq(0x8000000000000000ull), normal}},
     // TODO {std::strtold("inf", NULL), {false, _, _, infinity}},
 };
 
 class LongDoubleClassificationTest: public ::testing::TestWithParam<long_double_expectations_t::value_type>
 {
 };
-#endif
 
-#ifdef BOOST_FLOAT64_C
-typedef std::map<boost::float64_t, Expectations> double_expectations_t;
-double_expectations_t const double_expectations {
-    {0, {false, 0, 0, zero}},
-    {1.0, {false, 1023, 0, normal}},
-    {-2, {true, 1024, 0, normal}},
-    {std::strtod("inf", NULL), {false, _, _, infinity}},
-};
-
-class DoubleClassificationTest: public ::testing::TestWithParam<double_expectations_t::value_type>
-{
-};
-#endif
-
-#ifdef BOOST_FLOAT32_C
-typedef std::map<boost::float32_t, Expectations> single_expectations_t;
-single_expectations_t const single_expectations {
-    {0, {false, 0, 0, zero}},
-    {1.0, {false, 127, 0, normal}},
-    {-2, {true, 128, 0, normal}},
-    {std::strtof("inf", NULL), {false, _, _, infinity}},
-};
-
-class SingleClassificationTest: public ::testing::TestWithParam<single_expectations_t::value_type>
-{
-};
-#endif
-
-#ifdef BOOST_FLOAT80_C
 TEST_P(LongDoubleClassificationTest, identify_values)
 {
     auto const info(exact(GetParam().first));
@@ -116,6 +83,18 @@ INSTANTIATE_TEST_CASE_P(LongDoubleClassifications,
 #endif
 
 #ifdef BOOST_FLOAT64_C
+typedef std::map<boost::float64_t, Expectations> double_expectations_t;
+double_expectations_t const double_expectations {
+    {0, {false, Eq(0), Eq(0), zero}},
+    {1.0, {false, Eq(1023), Eq(0), normal}},
+    {-2, {true, Eq(1024), Eq(0), normal}},
+    {std::strtod("inf", NULL), {false, _, _, infinity}},
+};
+
+class DoubleClassificationTest: public ::testing::TestWithParam<double_expectations_t::value_type>
+{
+};
+
 TEST_P(DoubleClassificationTest, identify_values)
 {
     auto const info(exact(GetParam().first));
@@ -131,6 +110,18 @@ INSTANTIATE_TEST_CASE_P(DoubleClassifications,
 #endif
 
 #ifdef BOOST_FLOAT32_T
+typedef std::map<boost::float32_t, Expectations> single_expectations_t;
+single_expectations_t const single_expectations {
+    {0, {false, 0, 0, zero}},
+    {1.0, {false, 127, 0, normal}},
+    {-2, {true, 128, 0, normal}},
+    {std::strtof("inf", NULL), {false, _, _, infinity}},
+};
+
+class SingleClassificationTest: public ::testing::TestWithParam<single_expectations_t::value_type>
+{
+};
+
 TEST_P(SingleClassificationTest, identify_values)
 {
     auto const info(exact(GetParam().first));
@@ -178,11 +169,16 @@ TEST(BitsetOpsTest, test_reduce_binary_exponent)
 struct SerializationParam
 {
     bool negative;
-    std::uint16_t exponent;
-    std::uint64_t mantissa;
+    mp::cpp_int exponent;
+    mp::cpp_int mantissa;
     float_type number_type;
     char const* expectation;
 };
+
+std::ostream& operator<<(std::ostream& os, SerializationParam const& sp)
+{
+    return os << "neg: " << std::boolalpha << sp.negative << "; exp: " << std::hex << std::setfill('0') << std::setw(4) << sp.exponent << "; man: " << std::setw(16) << sp.mantissa << "; type: " << sp.number_type << "; expecting \"" << sp.expectation << "\"";
+}
 
 class Serialization: public ::testing::TestWithParam<SerializationParam>
 {
@@ -196,7 +192,7 @@ public:
 #ifdef BOOST_FLOAT80_C
 TEST_P(Serialization, test_extended)
 {
-    auto const value = FloatInfo<boost::float80_t>(GetParam().negative, GetParam().exponent, GetParam().mantissa, GetParam().number_type);
+    FloatInfo<boost::float80_t> const value(GetParam().negative, GetParam().exponent, GetParam().mantissa, GetParam().number_type);
     EXPECT_THAT(os << value, ResultOf(str, StrEq(GetParam().expectation)));
 }
 
