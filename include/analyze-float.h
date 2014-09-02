@@ -78,23 +78,22 @@ struct float_traits: float_traits_base<Float>
     enum { mantissa_bits = std::numeric_limits<Float>::digits - Base::implied_one };
     enum { exponent_bits = Base::bits - 1 - mantissa_bits };
     enum { exponent_bias = std::numeric_limits<Float>::max_exponent - 1 };
-    typedef mp::cpp_int record_type;
 
-    static mp::cpp_int get_exponent(record_type const& rec) {
+    static mp::cpp_int get_exponent(mp::cpp_int const& rec) {
         auto const exponent_mask = (mp::cpp_int(1) << unsigned(exponent_bits)) - 1;
         return (rec >> unsigned(mantissa_bits)) & exponent_mask;
     }
-    static mp::cpp_int get_mantissa(record_type const& rec) {
+    static mp::cpp_int get_mantissa(mp::cpp_int const& rec) {
         auto const mantissa_mask = (mp::cpp_int(1) << unsigned(mantissa_bits)) - 1;
         return rec & mantissa_mask;
     }
 };
 
 template <typename Float>
-typename float_traits<Float>::record_type
+mp::cpp_int
 to_float_rec(Float const value)
 {
-    typename float_traits<Float>::record_type result;
+    mp::cpp_int result;
     auto const v = reinterpret_cast<unsigned char const*>(&value);
     // TODO: Handle endian variation
     for (auto i = 0u; i < float_traits<Float>::bits; ++i)
@@ -107,7 +106,7 @@ template <typename Float>
 struct FloatInfo
 {
 private:
-    typename float_traits<Float>::record_type rec;
+    mp::cpp_int rec;
 public:
     bool negative;
     mp::cpp_int exponent;
