@@ -21,8 +21,6 @@ struct float_traits_base
     static bool const implied_one;
     static unsigned const bits;
     static bool const has_indefinite;
-    static uint64_t const quiet_mask;
-    static uint64_t const mantissa_mask;
     static char const* const article;
     static char const* const name;
 };
@@ -34,8 +32,6 @@ struct float_traits_base<boost::float80_t>
     static bool const implied_one = false;
     static unsigned const bits = 80;
     static bool const has_indefinite = true;
-    enum { quiet_mask = 0x4000000000000000ull };
-    enum { mantissa_mask = 0x3FFFFFFFFFFFFFFFull };
     constexpr static char const* const article = "an";
     constexpr static char const* const name = "Extended";
 };
@@ -48,8 +44,6 @@ struct float_traits_base<boost::float64_t>
     static bool const implied_one = true;
     static unsigned const bits = 64;
     static bool const has_indefinite = false;
-    enum { quiet_mask = 0x0008000000000000ull };
-    enum { mantissa_mask = 0xffffffffffffffffull };
     constexpr static char const* const article = "a";
     constexpr static char const* const name = "Double";
 };
@@ -62,8 +56,6 @@ struct float_traits_base<boost::float32_t>
     static bool const implied_one = true;
     static unsigned const bits = 32;
     static bool const has_indefinite = false;
-    enum { quiet_mask = 0x00400000ull };
-    enum { mantissa_mask = 0xffffffffffffffffull };
     constexpr static char const* const article = "a";
     constexpr static char const* const name = "Single";
 };
@@ -103,6 +95,30 @@ to_float_rec(Float const value)
 }
 
 template <typename Float>
+float_type
+get_float_type(mp::cpp_int exponent, mp::cpp_int mantissa)
+{
+    auto const exponent_mask = (mp::cpp_int(1) << unsigned(float_traits<Float>::exponent_bits)) - 1;
+    if (exponent == exponent_mask) {
+        if (mantissa.is_zero())
+            return infinity;
+        bool const top_bit = mp::bit_test(mantissa, float_traits<Float>::mantissa_bits - 1);
+        if (float_traits<Float>::implied_one)
+            return top_bit ? quiet_nan : signaling_nan;
+        // From here down, we know it's a float80_t
+        assert(float_traits<Float>::has_indefinite);
+        if (!top_bit)
+            return signaling_nan;
+        if (mp::bit_test(mantissa, float_traits<Float>::mantissa_bits - 2))
+            return mp::lsb(mantissa) < float_traits<Float>::mantissa_bits - 2 ? quiet_nan : indefinite;
+        return mp::lsb(mantissa) < float_traits<Float>::mantissa_bits - 1 ? signaling_nan : infinity;
+    } else if (exponent.is_zero())
+        return mantissa.is_zero() ? zero : denormal;
+    else
+        return (!float_traits<Float>::implied_one && !mp::bit_test(mantissa, float_traits<Float>::mantissa_bits - 1)) ? denormal : normal;
+}
+
+template <typename Float>
 struct FloatInfo
 {
 private:
@@ -117,24 +133,9 @@ public:
         rec(to_float_rec(value)),
         negative(value < 0),
         exponent(float_traits<Float>::get_exponent(rec)),
-        mantissa(float_traits<Float>::get_mantissa(rec))
-    {
-        auto const max_exponent = (mp::cpp_int(1) << unsigned(float_traits<Float>::exponent_bits)) - 1;
-        if (exponent == max_exponent)
-            if (mantissa.is_zero())
-                number_type = infinity;
-            else {
-                mantissa &= float_traits<Float>::mantissa_mask;
-                if ((float_traits<Float>::get_mantissa(rec) & float_traits<Float>::quiet_mask) == 0)
-                    number_type = signaling_nan;
-                else if (mantissa.is_zero())
-                    number_type = (float_traits<Float>::has_indefinite && mantissa.is_zero()) ? indefinite : quiet_nan;
-            }
-        else if (exponent.is_zero())
-            number_type = mantissa.is_zero() ? zero : denormal;
-        else
-            number_type = normal;
-    }
+        mantissa(float_traits<Float>::get_mantissa(rec)),
+        number_type(get_float_type<Float>(exponent, mantissa))
+    { }
 
     FloatInfo(bool negative, mp::cpp_int exponent, mp::cpp_int mantissa, float_type number_type):
         rec(), negative(negative), exponent(exponent), mantissa(mantissa), number_type(number_type)
