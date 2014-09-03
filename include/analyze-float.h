@@ -81,10 +81,12 @@ struct float_traits: float_traits_base<Float>
     }
 };
 
+#include <iostream>
 template <typename Float>
 mp::cpp_int
 to_float_rec(Float const value)
 {
+    std::clog << typeid(Float).name() << ' ' << value << std::endl;
     mp::cpp_int result;
     auto const v = reinterpret_cast<unsigned char const*>(&value);
     // TODO: Handle endian variation
