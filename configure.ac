@@ -37,6 +37,7 @@ AC_CHECK_HEADER([boost/cstdfloat.hpp], [], [
                  AC_MSG_ERROR([cstdfloat.hpp is required for uniform float types])
                  ], [])
 BOOST_FORMAT
+BOOST_VARIANT
 BOOST_CONVERSION
 BOOST_PROGRAM_OPTIONS
 

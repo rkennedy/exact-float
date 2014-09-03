@@ -5,24 +5,21 @@
 #include <gmock/gmock.h>
 #include <boost/cstdfloat.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <boost/type_erasure/any.hpp>
-#include <boost/type_erasure/operators.hpp>
-#include <boost/type_erasure/free.hpp>
-#include <boost/mpl/vector.hpp>
+#include <boost/variant.hpp>
 #include "include/analyze-float.h"
 
 namespace mp = boost::multiprecision;
 using namespace boost::multiprecision::literals;
-namespace te = boost::type_erasure;
 
-BOOST_TYPE_ERASURE_FREE((has_to_float_rec), to_float_rec, 1)
+struct float_rec: public boost::static_visitor<mp::cpp_int>
+{
+    template <typename Float>
+    mp::cpp_int operator()(Float const value) const {
+        return to_float_rec(value);
+    }
+};
 
-typedef te::any<
-    boost::mpl::vector<
-        has_to_float_rec<mp::cpp_int(te::_self)>,
-        te::ostreamable<>,
-        te::relaxed>,
-   te::_self const&> anyfloat;
+using anyfloat = boost::variant<boost::float80_t, boost::float64_t, boost::float32_t>;
 
 struct ConversionCase
 {
@@ -62,7 +59,8 @@ ConversionCase const bit_conversions[] {
 
 TEST_P(FloatToBits, test_convert)
 {
-    EXPECT_THAT(to_float_rec(GetParam().input), GetParam().expectation);
+    auto const rec = boost::apply_visitor(float_rec(), GetParam().input);
+    EXPECT_THAT(rec, GetParam().expectation);
 }
 
 INSTANTIATE_TEST_CASE_P(FTB,
