@@ -9,19 +9,6 @@
 
 namespace mp = boost::multiprecision;
 
-#ifdef BOOST_FLOAT80_C
-constexpr char const* const float_traits_base<boost::float80_t>::article;
-constexpr char const* const float_traits_base<boost::float80_t>::name;
-#endif
-#ifdef BOOST_FLOAT64_C
-constexpr char const* const float_traits_base<boost::float64_t>::article;
-constexpr char const* const float_traits_base<boost::float64_t>::name;
-#endif
-#ifdef BOOST_FLOAT32_C
-constexpr char const* const float_traits_base<boost::float32_t>::article;
-constexpr char const* const float_traits_base<boost::float32_t>::name;
-#endif
-
 std::ostream& operator<<(std::ostream& os, float_type const type)
 {
     switch (type)
