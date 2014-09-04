@@ -76,11 +76,10 @@ to_float_rec(Float const value)
     return result;
 }
 
-template <typename Float>
-float_type
-get_float_type(mp::cpp_int exponent, mp::cpp_int mantissa)
+inline float_type
+get_float_type(mp::cpp_int exponent, mp::cpp_int mantissa, std::type_index type)
 {
-    float_traits const& traits = float_trait_map.at(typeid(Float));
+    float_traits const& traits = float_trait_map.at(type);
     auto const exponent_mask = (mp::cpp_int(1) << traits.exponent_bits()) - 1;
     if (exponent == exponent_mask) {
         if (mantissa.is_zero())
@@ -112,13 +111,13 @@ public:
     float_type number_type;
 
     template <typename Float>
-    FloatInfo(Float const value):
+    explicit FloatInfo(Float const value):
         traits(float_trait_map.at(typeid(Float))),
         rec(to_float_rec(value)),
         negative(value < 0),
         exponent(traits.get_exponent(rec)),
         mantissa(traits.get_mantissa(rec)),
-        number_type(get_float_type<Float>(exponent, mantissa))
+        number_type(get_float_type(exponent, mantissa, typeid(Float)))
     { }
 
     FloatInfo(bool negative, mp::cpp_int exponent, mp::cpp_int mantissa, float_type number_type, std::type_index type):

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <tuple>
 #include <limits>
+#include <typeindex>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <boost/utility/binary.hpp>
@@ -18,74 +19,90 @@ using ::testing::_;
 using ::testing::ResultOf;
 using namespace boost::multiprecision::literals;
 
+struct TypeCase
+{
+    mp::cpp_int exponent;
+    mp::cpp_int mantissa;
+    std::type_index type;
+    ::testing::Matcher<float_type> expected_type;
+};
+
+std::ostream& operator<<(std::ostream& os, TypeCase const& typecase)
+{
+    os << "exp: " << std::hex << typecase.exponent << "; man: " << typecase.mantissa << "; type: " << typecase.type.name() << "; result ";
+    typecase.expected_type.DescribeTo(&os);
+    return os;
+}
+
+TypeCase const case_expectations[] {
 #ifdef BOOST_FLOAT80_C
-TEST(TestClassifyNumbers, test_recognize_extendeds)
-{
-    EXPECT_THAT(get_float_type<boost::float80_t>(0, 0), zero);
-    EXPECT_THAT(get_float_type<boost::float80_t>(0, 0x7fffffffffffffff_cppui), denormal);
-    EXPECT_THAT(get_float_type<boost::float80_t>(0, 0x4aaaaaaaaaaaaaaa_cppui), denormal);
-    EXPECT_THAT(get_float_type<boost::float80_t>(0, 0x8000000000000000_cppui), denormal);
-    EXPECT_THAT(get_float_type<boost::float80_t>(0, 0xffffffffffffffff_cppui), denormal);
-
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x7fff, 0), infinity) << "actually invalid nowadays";
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x7fff, 0x3fffffffffffffff_cppui), signaling_nan) << "actually invalid nowadays";
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x7fff, 0x4000000000000000_cppui), signaling_nan) << "actually invalid nowadays";
-
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x7fff, 0x8000000000000000_cppui), infinity) << "formerly signaling_nan";
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x7fff, 0xbfffffffffffffff_cppui), signaling_nan);
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x7fff, 0x8000000000000001_cppui), signaling_nan);
-
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x7fff, 0xc000000000000000_cppui), indefinite);
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x7fff, 0xffffffffffffffff_cppui), quiet_nan);
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x7fff, 0xc000000000000001_cppui), quiet_nan);
-
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x7777, 0x0000000000000000_cppui), denormal) << "invalid nowadays";
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x4444, 0x7fffffffffffffff_cppui), denormal) << "invalid nowadays";
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x3333, 0x8000000000000000_cppui), normal);
-    EXPECT_THAT(get_float_type<boost::float80_t>(0x3333, 0xffffffffffffffff_cppui), normal);
-}
+    { 0, 0, typeid(boost::float80_t), zero },
+    { 0, 0x7fffffffffffffff_cppui, typeid(boost::float80_t), denormal },
+    { 0, 0x4aaaaaaaaaaaaaaa_cppui, typeid(boost::float80_t), denormal },
+    { 0, 0x8000000000000000_cppui, typeid(boost::float80_t), denormal },
+    { 0, 0xffffffffffffffff_cppui, typeid(boost::float80_t), denormal },
+    { 0x7fff, 0, typeid(boost::float80_t), infinity },
+    { 0x7fff, 0x3fffffffffffffff_cppui, typeid(boost::float80_t), signaling_nan },
+    { 0x7fff, 0x4000000000000000_cppui, typeid(boost::float80_t), signaling_nan },
+    { 0x7fff, 0x8000000000000000_cppui, typeid(boost::float80_t), infinity },
+    { 0x7fff, 0xbfffffffffffffff_cppui, typeid(boost::float80_t), signaling_nan },
+    { 0x7fff, 0x8000000000000001_cppui, typeid(boost::float80_t), signaling_nan },
+    { 0x7fff, 0xc000000000000000_cppui, typeid(boost::float80_t), indefinite },
+    { 0x7fff, 0xffffffffffffffff_cppui, typeid(boost::float80_t), quiet_nan },
+    { 0x7fff, 0xc000000000000001_cppui, typeid(boost::float80_t), quiet_nan },
+    { 0x7777, 0x0000000000000000_cppui, typeid(boost::float80_t), denormal },
+    { 0x4444, 0x7fffffffffffffff_cppui, typeid(boost::float80_t), denormal },
+    { 0x3333, 0x8000000000000000_cppui, typeid(boost::float80_t), normal },
+    { 0x3333, 0xffffffffffffffff_cppui, typeid(boost::float80_t), normal },
 #endif
-
 #ifdef BOOST_FLOAT64_C
-TEST(TestClassifyNumbers, test_recognize_doubles)
-{
-    EXPECT_THAT(get_float_type<boost::float64_t>(0, 0), zero);
-    EXPECT_THAT(get_float_type<boost::float64_t>(0, 0xfffffffffffff_cppui), denormal);
-    EXPECT_THAT(get_float_type<boost::float64_t>(0, 0x8000000000000_cppui), denormal);
-    EXPECT_THAT(get_float_type<boost::float64_t>(0, 0x0000000000001_cppui), denormal);
+    { 0, 0, typeid(boost::float64_t), zero },
+    { 0, 0xfffffffffffff_cppui, typeid(boost::float64_t), denormal },
+    { 0, 0x8000000000000_cppui, typeid(boost::float64_t), denormal },
+    { 0, 0x0000000000001_cppui, typeid(boost::float64_t), denormal },
 
-    EXPECT_THAT(get_float_type<boost::float64_t>(0x7ff, 0), infinity);
-    EXPECT_THAT(get_float_type<boost::float64_t>(0x7ff, 0x8000000000000_cppui), quiet_nan);
-    EXPECT_THAT(get_float_type<boost::float64_t>(0x7ff, 0xfffffffffffff_cppui), quiet_nan);
-    EXPECT_THAT(get_float_type<boost::float64_t>(0x7ff, 0x0000000000001_cppui), signaling_nan);
-    EXPECT_THAT(get_float_type<boost::float64_t>(0x7ff, 0x7ffffffffffff_cppui), signaling_nan);
+    { 0x7ff, 0, typeid(boost::float64_t), infinity },
+    { 0x7ff, 0x8000000000000_cppui, typeid(boost::float64_t), quiet_nan },
+    { 0x7ff, 0xfffffffffffff_cppui, typeid(boost::float64_t), quiet_nan },
+    { 0x7ff, 0x0000000000001_cppui, typeid(boost::float64_t), signaling_nan },
+    { 0x7ff, 0x7ffffffffffff_cppui, typeid(boost::float64_t), signaling_nan },
 
-    EXPECT_THAT(get_float_type<boost::float64_t>(0x777, 0), normal);
-    EXPECT_THAT(get_float_type<boost::float64_t>(0x001, 0xfffffffffffff_cppui), normal);
-    EXPECT_THAT(get_float_type<boost::float64_t>(0x400, 0x8000000000000_cppui), normal);
-}
+    { 0x777, 0, typeid(boost::float64_t), normal },
+    { 0x001, 0xfffffffffffff_cppui, typeid(boost::float64_t), normal },
+    { 0x400, 0x8000000000000_cppui, typeid(boost::float64_t), normal },
 #endif
-
 #ifdef BOOST_FLOAT32_C
-TEST(TestClassifyNumbers, test_recognize_singles)
-{
-    EXPECT_THAT(get_float_type<boost::float32_t>(0, 0), zero);
-    EXPECT_THAT(get_float_type<boost::float32_t>(0, 0x7fffff_cppui), denormal);
-    EXPECT_THAT(get_float_type<boost::float32_t>(0, 0x400000_cppui), denormal);
-    EXPECT_THAT(get_float_type<boost::float32_t>(0, 0x000001_cppui), denormal);
+    { 0, 0, typeid(boost::float32_t), zero },
+    { 0, 0x7fffff_cppui, typeid(boost::float32_t), denormal },
+    { 0, 0x400000_cppui, typeid(boost::float32_t), denormal },
+    { 0, 0x000001_cppui, typeid(boost::float32_t), denormal },
 
-    EXPECT_THAT(get_float_type<boost::float32_t>(0xff, 0), infinity);
-    EXPECT_THAT(get_float_type<boost::float32_t>(0xff, 0x400000_cppui), quiet_nan);
-    EXPECT_THAT(get_float_type<boost::float32_t>(0xff, 0x7fffff_cppui), quiet_nan);
-    EXPECT_THAT(get_float_type<boost::float32_t>(0xff, 0x3fffff_cppui), signaling_nan);
-    EXPECT_THAT(get_float_type<boost::float32_t>(0xff, 0x000001_cppui), signaling_nan);
+    { 0xff, 0, typeid(boost::float32_t), infinity },
+    { 0xff, 0x400000_cppui, typeid(boost::float32_t), quiet_nan },
+    { 0xff, 0x7fffff_cppui, typeid(boost::float32_t), quiet_nan },
+    { 0xff, 0x3fffff_cppui, typeid(boost::float32_t), signaling_nan },
+    { 0xff, 0x000001_cppui, typeid(boost::float32_t), signaling_nan },
 
-    EXPECT_THAT(get_float_type<boost::float32_t>(0x80, 0), normal);
-    EXPECT_THAT(get_float_type<boost::float32_t>(0x01, 0), normal);
-    EXPECT_THAT(get_float_type<boost::float32_t>(0x77, 0x7fffffff), normal);
-    EXPECT_THAT(get_float_type<boost::float32_t>(0xfe, 0x7fffffff), normal);
-}
+    { 0x80, 0, typeid(boost::float32_t), normal },
+    { 0x01, 0, typeid(boost::float32_t), normal },
+    { 0x77, 0x7fffffff, typeid(boost::float32_t), normal },
+    { 0xfe, 0x7fffffff, typeid(boost::float32_t), normal },
 #endif
+};
+
+class TestClassifyNumbers: public ::testing::TestWithParam<TypeCase>
+{
+};
+
+TEST_P(TestClassifyNumbers, test)
+{
+    auto const result = get_float_type(GetParam().exponent, GetParam().mantissa, GetParam().type);
+    EXPECT_THAT(result, GetParam().expected_type);
+}
+
+INSTANTIATE_TEST_CASE_P(Classify,
+                        TestClassifyNumbers,
+                        ::testing::ValuesIn(case_expectations));
 
 struct Expectations
 {
