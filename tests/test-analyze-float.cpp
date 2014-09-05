@@ -141,7 +141,7 @@ expectations_t const boost_float_expectations {
     {BOOST_FLOAT80_C(0.), {false, Eq(0), Eq(0), zero}},
     {BOOST_FLOAT80_C(1.), {false, Eq(16383), Eq(0x8000000000000000ull), normal}},
     {BOOST_FLOAT80_C(-1.), {true, Eq(16383), Eq(0x8000000000000000ull), normal}},
-    // TODO {std::strtold("inf", NULL), {false, _, _, infinity}},
+    {std::strtold("inf", NULL), {false, _, _, infinity}},
 #endif
 #ifdef BOOST_FLOAT64_C
     {BOOST_FLOAT64_C(0.), {false, Eq(0), Eq(0), zero}},
