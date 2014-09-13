@@ -177,12 +177,13 @@ struct SerializationParam
     mp::cpp_int exponent;
     mp::cpp_int mantissa;
     float_type number_type;
+    std::type_index type;
     char const* expectation;
 };
 
 std::ostream& operator<<(std::ostream& os, SerializationParam const& sp)
 {
-    return os << "neg: " << std::boolalpha << sp.negative << "; exp: " << std::hex << std::setfill('0') << std::setw(4) << sp.exponent << "; man: " << std::setw(16) << sp.mantissa << "; type: " << sp.number_type << "; expecting \"" << sp.expectation << "\"";
+    return os << sp.type.name() << ": neg: " << std::boolalpha << sp.negative << "; exp: " << std::hex << std::setfill('0') << std::setw(4) << sp.exponent << "; man: " << std::setw(16) << sp.mantissa << "; type: " << sp.number_type << "; expecting \"" << sp.expectation << "\"";
 }
 
 class Serialization: public ::testing::TestWithParam<SerializationParam>
@@ -197,19 +198,19 @@ public:
 #ifdef BOOST_FLOAT80_C
 TEST_P(Serialization, test_extended)
 {
-    FloatInfo const value(GetParam().negative, GetParam().exponent, GetParam().mantissa, GetParam().number_type, typeid(boost::float80_t));
+    FloatInfo const value(GetParam().negative, GetParam().exponent, GetParam().mantissa, GetParam().number_type, GetParam().type);
     EXPECT_THAT(os << value, ResultOf(str, StrEq(GetParam().expectation)));
 }
 
 SerializationParam const extended_serializations[] = {
     {false, std::numeric_limits<boost::float80_t>::max_exponent - 1, BOOST_BINARY_ULL(
-            10000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000), normal,
+            10000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000), normal, typeid(boost::float80_t),
     "+ 1"},
     {true, std::numeric_limits<boost::float80_t>::max_exponent - 1, BOOST_BINARY_ULL(
-            11000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000), normal,
+            11000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000), normal, typeid(boost::float80_t),
     "- 1.5"},
     {false, std::numeric_limits<boost::float80_t>::max_exponent + 5, BOOST_BINARY_ULL(
-            10101110 10010001 11101011 10000101 00011110 10111000 01010001 11101100), normal,
+            10101110 10010001 11101011 10000101 00011110 10111000 01010001 11101100), normal, typeid(boost::float80_t),
     "+ 87.28500 00000 00000 00333 06690 73875 46962 12708 95004 27246 09375"},
 };
 
