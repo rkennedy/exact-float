@@ -27,7 +27,7 @@ libgmock_a_CPPFLAGS = $(GMOCK_CPPFLAGS) -I$(GMOCK_ROOT) $(GTEST_CPPFLAGS)
 libgmock_a_CXXFLAGS = $(GMOCK_CXXFLAGS) $(GTEST_CXXFLAGS)
 
 noinst_PROGRAMS = test-analyze-float
-test_analyze_float_SOURCES = tests/main.cpp tests/test-analyze-float.cpp tests/bit-tests.cpp
+test_analyze_float_SOURCES = tests/main.cpp tests/test-analyze-float.cpp tests/arithmetic-helper-tests.cpp tests/bit-tests.cpp
 test_analyze_float_CPPFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(GTEST_CPPFLAGS) $(GMOCK_CPPFLAGS)
 test_analyze_float_CXXFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(GTEST_CXXFLAGS) $(GMOCK_CXXFLAGS)
 test_analyze_float_LDFLAGS = $(GTEST_LDFLAGS) $(GMOCK_LDFLAGS)
