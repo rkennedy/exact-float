@@ -21,6 +21,13 @@ using namespace boost::multiprecision::literals;
 
 using anyfloat = boost::variant<boost::float80_t, boost::float64_t, boost::float32_t>;
 
+// We don't want Google Test to try printing a FloatInfo value with the default
+// operator<< because that's one of the things that's being tested.
+void PrintTo(FloatInfo const& info, std::ostream* os)
+{
+    *os << boost::format("{ neg: %|1|, exponent: %|2|, mantissa: %|3|, numtype: %|4| }") % info.negative % info.exponent % info.mantissa % info.number_type;
+}
+
 struct ConstructionCase
 {
     anyfloat number;
@@ -67,6 +74,13 @@ TEST_P(ConstructionTest, number_construction)
     EXPECT_THAT(info.exponent, GetParam().exponent);
     EXPECT_THAT(info.mantissa, GetParam().mantissa);
     EXPECT_THAT(info.number_type, GetParam().number_type);
+}
+
+TEST_P(ConstructionTest, equality)
+{
+    FloatInfo const field_info{GetParam().negative, GetParam().exponent, GetParam().mantissa, GetParam().number_type, GetParam().type};
+    FloatInfo const number_info{ boost::apply_visitor(get_float_info(), GetParam().number) };
+    EXPECT_THAT(field_info, Eq(number_info));
 }
 
 ConstructionCase const construction_params[] {
