@@ -171,23 +171,37 @@ TEST_P(Serialization, test)
 
 SerializationParam const serializations[] = {
 #ifdef BOOST_FLOAT80_C
-    { BOOST_FLOAT80_C(1.), "+ 1" },
+    { BOOST_FLOAT80_C(1.), "1" },
     { BOOST_FLOAT80_C(-1.5), "- 1.5" },
-    { BOOST_FLOAT80_C(87.285), "+ 87.28500" "00000" "00000" "00333" "06690" "73875" "46962" "12708" "95004" "27246" "09375" },
+    { BOOST_FLOAT80_C(87.285), "87.28500" "00000" "00000" "00333" "06690" "73875" "46962" "12708" "95004" "27246" "09375" },
 #endif
 
 #ifdef BOOST_FLOAT64_C
-    { BOOST_FLOAT64_C(1.), "+ 1" },
+    { BOOST_FLOAT64_C(1.), "1" },
     { BOOST_FLOAT64_C(-1.5), "- 1.5" },
-    { BOOST_FLOAT64_C(87.285), "+ 87.28499" "99999" "99996" "58939" "48683" "51519" "10781" "86035" "15625" },
+    { BOOST_FLOAT64_C(87.285), "87.28499" "99999" "99996" "58939" "48683" "51519" "10781" "86035" "15625" },
 #endif
 
 #ifdef BOOST_FLOAT32_C
-    { BOOST_FLOAT32_C(1.), "+ 1" },
+    { BOOST_FLOAT32_C(1.), "1" },
     { BOOST_FLOAT32_C(-1.5), "- 1.5" },
-    { BOOST_FLOAT32_C(87.285), "+ 87.28500" "36621" "09375" },
+    { BOOST_FLOAT32_C(87.285), "87.28500" "36621" "09375" },
 #endif
 };
 
 INSTANTIATE_TEST_CASE_P(Serializations, Serialization,
                         ::testing::ValuesIn(serializations));
+
+TEST_F(Serialization, honor_showpos_for_positive)
+{
+    FloatInfo const value { 1.5 };
+    EXPECT_THAT(os << std::showpos << value,
+                ResultOf(str, StrEq("+ 1.5")));
+}
+
+TEST_F(Serialization, ignore_noshowpos_for_negative)
+{
+    FloatInfo const value { -1.5 };
+    EXPECT_THAT(os << std::noshowpos << value,
+                ResultOf(str, StrEq("- 1.5")));
+}
