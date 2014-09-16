@@ -1,13 +1,10 @@
 #include "config.h"
 #include <array>
 #include <boost/cstdfloat.hpp>
-#include <boost/utility/enable_if.hpp>
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/bitwise.hpp>
 #include <boost/mpl/eval_if.hpp>
-#include <boost/mpl/insert.hpp>
 #include <boost/mpl/integral_c.hpp>
-#include <boost/mpl/map.hpp>
 #include <boost/mpl/push_back.hpp>
 #include <boost/mpl/size.hpp>
 #include <boost/mpl/vector.hpp>
@@ -18,6 +15,7 @@ namespace detail
 template <unsigned char B>
 using uchar = boost::mpl::integral_c<unsigned char, B>;
 
+template <char C>
 struct invalid_char {};
 
 template <char C>
@@ -38,7 +36,7 @@ using char_to_nibble =
     typename boost::mpl::eval_if_c<C == 'd' || C == 'D', uchar<13>,
     typename boost::mpl::eval_if_c<C == 'e' || C == 'E', uchar<14>,
     typename boost::mpl::eval_if_c<C == 'f' || C == 'F', uchar<15>,
-    invalid_char>>>>>>>>>>>>>>>>::type;
+    invalid_char<C>>>>>>>>>>>>>>>>>::type;
 
 template <char... Chars>
 struct build_float;
@@ -51,7 +49,7 @@ struct build_float<C1, C2, Chars...>
         typename boost::mpl::bitor_<
             typename boost::mpl::shift_left<
                 char_to_nibble<C1>,
-                boost::mpl::int_<4>
+                uchar<4>
             >::type,
             char_to_nibble<C2>
         >::type
@@ -82,28 +80,36 @@ struct build_indices<0>
     using type = indices<>;
 };
 
+template <size_t Bits> struct unsupported_float_type {};
 #ifdef BOOST_FLOAT80_C
-using m2 = boost::mpl::insert<boost::mpl::map<>, boost::mpl::pair<boost::mpl::long_<80>, boost::float80_t>>::type;
+using float80_type = boost::mpl::identity<boost::float80_t>;
 #else
-using m2 = boost::mpl::map<>;
+using float80_type = unsupported_float_type<80>;
 #endif
 #ifdef BOOST_FLOAT64_C
-using m1 = boost::mpl::insert<m2, boost::mpl::pair<boost::mpl::long_<64>, boost::float64_t>>::type;
+using float64_type = boost::mpl::identity<boost::float64_t>;
 #else
-using m1 = m2;
+using float64_type = unsupported_float_type<64>;
 #endif
 #ifdef BOOST_FLOAT32_C
-using m = boost::mpl::insert<m1, boost::mpl::pair<boost::mpl::long_<32>, boost::float32_t>>::type;
+using float32_type = boost::mpl::identity<boost::float32_t>;
 #else
-using m = m1;
+using float32_type = unsupported_float_type<32>;
 #endif
+
+template <size_t Bits>
+using float_type = typename
+    boost::mpl::eval_if_c<Bits == 80, float80_type,
+    boost::mpl::eval_if_c<Bits == 64, float64_type,
+    boost::mpl::eval_if_c<Bits == 32, float32_type,
+    unsupported_float_type<Bits>>>>::type;
 
 template <size_t Bits>
 union hex_float
 {
     using array_type = std::array<unsigned char, Bits / CHAR_BIT>;
 
-    typename boost::mpl::at_c<m, Bits>::type f;
+    float_type<Bits> f;
     array_type b;
 
     constexpr hex_float(array_type const& b):
@@ -141,16 +147,7 @@ public:
 // sizeof...(Chars) - 2 is the number of characters in the hexadecimal portion
 // of the literal. The extra two are the "0x" prefix.
 template <char... Chars> constexpr
-typename boost::enable_if<
-    boost::mpl::has_key<
-        detail::m,
-        boost::mpl::long_<(sizeof...(Chars) - 2) * CHAR_BIT / 2>
-    >,
-    typename boost::mpl::at<
-        detail::m,
-        boost::mpl::long_<(sizeof...(Chars) - 2) * CHAR_BIT / 2>
-    >::type
->::type operator"" _float()
+detail::float_type<(sizeof...(Chars) - 2) * CHAR_BIT / 2> operator"" _float()
 {
     return detail::hex_float<(sizeof...(Chars) - 2) / 2 * CHAR_BIT>{
         detail::to_float<Chars...>::as_array()
