@@ -9,6 +9,7 @@
 #include <boost/utility/binary.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/variant.hpp>
+#include <boost/format.hpp>
 #include "float-literals.h"
 #include "analyze-float.h"
 
@@ -127,17 +128,13 @@ INSTANTIATE_TEST_CASE_P(
 
 struct SerializationParam
 {
-    bool negative;
-    mp::cpp_int exponent;
-    mp::cpp_int mantissa;
-    float_type number_type;
-    std::type_index type;
+    anyfloat value;
     char const* expectation;
 };
 
 std::ostream& operator<<(std::ostream& os, SerializationParam const& sp)
 {
-    return os << sp.type.name() << ": neg: " << std::boolalpha << sp.negative << "; exp: " << std::hex << std::setfill('0') << std::setw(4) << sp.exponent << "; man: " << std::setw(16) << sp.mantissa << "; type: " << sp.number_type << "; expecting \"" << sp.expectation << "\"";
+    return os << boost::format("%|1| (%|2|); expecting \"%|1|\"") % sp.value % std::type_index(sp.value.type()).name() % sp.expectation;
 }
 
 class Serialization: public ::testing::TestWithParam<SerializationParam>
@@ -149,51 +146,34 @@ public:
     }
 };
 
-#ifdef BOOST_FLOAT80_C
-TEST_P(Serialization, test_extended)
+TEST_P(Serialization, test)
 {
-    FloatInfo const value(GetParam().negative, GetParam().exponent, GetParam().mantissa, GetParam().number_type, GetParam().type);
+    FloatInfo const value {
+        boost::apply_visitor(get_float_info(),
+                             GetParam().value)
+    };
     EXPECT_THAT(os << value, ResultOf(str, StrEq(GetParam().expectation)));
 }
 
-SerializationParam const extended_serializations[] = {
+SerializationParam const serializations[] = {
 #ifdef BOOST_FLOAT80_C
-    {false, std::numeric_limits<boost::float80_t>::max_exponent - 1, BOOST_BINARY_ULL(
-            10000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000), normal, typeid(boost::float80_t),
-    "+ 1"},
-    {true, std::numeric_limits<boost::float80_t>::max_exponent - 1, BOOST_BINARY_ULL(
-            11000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000), normal, typeid(boost::float80_t),
-    "- 1.5"},
-    {false, std::numeric_limits<boost::float80_t>::max_exponent + 5, BOOST_BINARY_ULL(
-            10101110 10010001 11101011 10000101 00011110 10111000 01010001 11101100), normal, typeid(boost::float80_t),
-    "+ 87.28500 00000 00000 00333 06690 73875 46962 12708 95004 27246 09375"},
+    { BOOST_FLOAT80_C(1.), "+ 1" },
+    { BOOST_FLOAT80_C(-1.5), "- 1.5" },
+    { BOOST_FLOAT80_C(87.285), "+ 87.28500 00000 00000 00333 06690 73875 46962 12708 95004 27246 09375" },
 #endif
 
 #ifdef BOOST_FLOAT64_C
-    {false, std::numeric_limits<boost::float64_t>::max_exponent - 1, BOOST_BINARY_ULL(
-            0000 00000000 00000000 00000000 00000000 00000000 00000000), normal, typeid(boost::float64_t),
-    "+ 1"},
-    {true, std::numeric_limits<boost::float64_t>::max_exponent - 1, BOOST_BINARY_ULL(
-            1000 00000000 00000000 00000000 00000000 00000000 00000000), normal, typeid(boost::float64_t),
-    "- 1.5"},
-    {false, std::numeric_limits<boost::float64_t>::max_exponent + 5, BOOST_BINARY_ULL(
-            0101 11010010 00111101 01110000 10100011 11010111 00001010), normal, typeid(boost::float64_t),
-    "+ 87.28499 99999 99996 58939 48683 51519 10781 86035 15625"},
+    { BOOST_FLOAT64_C(1.), "+ 1" },
+    { BOOST_FLOAT64_C(-1.5), "- 1.5" },
+    { BOOST_FLOAT64_C(87.285), "+ 87.28499 99999 99996 58939 48683 51519 10781 86035 15625" },
 #endif
 
 #ifdef BOOST_FLOAT32_C
-    {false, std::numeric_limits<boost::float32_t>::max_exponent - 1, BOOST_BINARY_ULL(
-            0000000 00000000 00000000), normal, typeid(boost::float32_t),
-    "+ 1"},
-    {true, std::numeric_limits<boost::float32_t>::max_exponent - 1, BOOST_BINARY_ULL(
-            1000000 00000000 00000000), normal, typeid(boost::float32_t),
-    "- 1.5"},
-    {false, std::numeric_limits<boost::float32_t>::max_exponent + 5, BOOST_BINARY_ULL(
-            0101110 10010001 11101100), normal, typeid(boost::float32_t),
-    "+ 87.28500 36621 09375"},
+    { BOOST_FLOAT32_C(1.), "+ 1" },
+    { BOOST_FLOAT32_C(-1.5), "- 1.5" },
+    { BOOST_FLOAT32_C(87.285), "+ 87.28500 36621 09375" },
 #endif
 };
 
-INSTANTIATE_TEST_CASE_P(ExtendedSerializations, Serialization,
-                        ::testing::ValuesIn(extended_serializations));
-#endif
+INSTANTIATE_TEST_CASE_P(Serializations, Serialization,
+                        ::testing::ValuesIn(serializations));

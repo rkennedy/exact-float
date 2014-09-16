@@ -28,10 +28,10 @@ libgmock_a_CXXFLAGS = $(GMOCK_CXXFLAGS) $(GTEST_CXXFLAGS)
 
 noinst_PROGRAMS = test-analyze-float
 test_analyze_float_SOURCES = tests/main.cpp tests/test-analyze-float.cpp tests/arithmetic-helper-tests.cpp tests/bit-tests.cpp tests/float-literal-tests.cpp
-test_analyze_float_CPPFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(GTEST_CPPFLAGS) $(GMOCK_CPPFLAGS)
-test_analyze_float_CXXFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(GTEST_CXXFLAGS) $(GMOCK_CXXFLAGS)
-test_analyze_float_LDFLAGS = $(GTEST_LDFLAGS) $(GMOCK_LDFLAGS)
-test_analyze_float_LDADD = $(GTEST_LIBS) $(GMOCK_LIBS) libgtest.a libgmock.a
+test_analyze_float_CPPFLAGS = -I$(srcdir)/include $(BOOST_CPPFLAGS) $(BOOST_FORMAT_CPPFLAGS) $(BOOST_VARIANT_CPPFLAGS) $(GTEST_CPPFLAGS) $(GMOCK_CPPFLAGS)
+test_analyze_float_CXXFLAGS = -I$(srcdir)/include $(BOOST_CXXFLAGS) $(GTEST_CXXFLAGS) $(GMOCK_CXXFLAGS)
+test_analyze_float_LDFLAGS = $(BOOST_FORMAT_LDFLAGS) $(BOOST_VARIANT_LDFLAGS) $(GTEST_LDFLAGS) $(GMOCK_LDFLAGS)
+test_analyze_float_LDADD = $(BOOST_FORMAT_LIBS) $(BOOST_VARIANT_LIBS) $(GTEST_LIBS) $(GMOCK_LIBS) libgtest.a libgmock.a
 
 TESTS = test-analyze-float
 endif
