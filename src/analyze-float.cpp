@@ -38,7 +38,7 @@ namespace {
 
 // Repeatedly divide by 10 and use remainders to create decimal string
 std::string
-build_result(int DecExp, mp::cpp_int Man, bool negative, char decimal_point, char thousands_sep)
+build_result(int DecExp, mp::cpp_int Man, bool negative)
 {
     mp::cpp_int const ten(10);
     char const DecDigits[11] = "0123456789";
@@ -46,11 +46,7 @@ build_result(int DecExp, mp::cpp_int Man, bool negative, char decimal_point, cha
     do {
         if (!result.empty()) {
             if (DecExp == 0)
-                result += decimal_point;
-            else if (thousands_sep == ' ' && (DecExp % 5) == 0)
-                result += ' ';
-            else if (thousands_sep != '\0' && thousands_sep != ' ' && (DecExp % 3) == 0)
-                result += thousands_sep;
+                result += '.';
         }
         mp::cpp_int Remainder;
         mp::divide_qr(Man, ten, Man, Remainder);
@@ -148,7 +144,7 @@ bool FloatInfo::operator==(FloatInfo const& other) const
 
 // Value = Mantissa * 2^BinExp * 10^DecExp
 std::string
-FloatingBinPointToDecStr(mp::cpp_int Value, int BinExp, bool negative, char decimal_point /*= '.'*/, char thousands_sep /*= ' '*/)
+FloatingBinPointToDecStr(mp::cpp_int Value, int BinExp, bool negative)
 {
     mp::cpp_int Man = Value;
 
@@ -161,7 +157,7 @@ FloatingBinPointToDecStr(mp::cpp_int Value, int BinExp, bool negative, char deci
 
     Man = reduce_binary_exponent(Man, BinExp);
 
-    return build_result(DecExp, Man, negative, decimal_point, thousands_sep);
+    return build_result(DecExp, Man, negative);
 }
 
 std::ostream&
@@ -172,13 +168,13 @@ operator<<(std::ostream& os, FloatInfo const& info)
             unsigned const mantissa_offset = info.traits.mantissa_bits() - 1 + info.traits.implied_one;
             mp::cpp_int const full_mantissa = (mp::cpp_int(1) << mantissa_offset) | info.mantissa;
             mp::cpp_int const adjusted_exponent = info.exponent - info.traits.exponent_bias() - mantissa_offset;
-            return os << FloatingBinPointToDecStr(full_mantissa, adjusted_exponent.convert_to<int>(), info.negative, '.', ' ');
+            return os << FloatingBinPointToDecStr(full_mantissa, adjusted_exponent.convert_to<int>(), info.negative);
         }
         case zero:
             return os << (info.negative ? "- 0" : "+ 0");
         case denormal:
             // TODO!
-            return os << FloatingBinPointToDecStr(info.mantissa, -info.traits.exponent_bias() - (info.traits.mantissa_bits() - 2), info.negative, '.', ' ');
+            return os << FloatingBinPointToDecStr(info.mantissa, -info.traits.exponent_bias() - (info.traits.mantissa_bits() - 2), info.negative);
         case indefinite:
             return os << "Indefinite";
         case infinity:
