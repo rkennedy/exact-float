@@ -3,6 +3,7 @@
 #include <iostream>
 #include <array>
 #include <limits>
+#include <locale>
 #include <typeindex>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -158,6 +159,9 @@ public:
     static std::string str(std::ostream const& s) {
         return dynamic_cast<std::ostringstream const&>(s).str();
     }
+    void SetUp() override {
+        os.imbue(std::locale::classic());
+    }
 };
 
 TEST_P(Serialization, test)
@@ -204,4 +208,18 @@ TEST_F(Serialization, ignore_noshowpos_for_negative)
     FloatInfo const value { -1.5 };
     EXPECT_THAT(os << std::noshowpos << value,
                 ResultOf(str, StrEq("-1.5")));
+}
+
+TEST_F(Serialization, honor_locale_decimal_separator)
+{
+    struct test_punct: std::numpunct<char>
+    {
+        char_type do_decimal_point() const override {
+            return ':';
+        }
+    };
+    FloatInfo const value { 1.5 };
+    os.imbue(std::locale(os.getloc(), new test_punct()));
+    EXPECT_THAT(os << value,
+                ResultOf(str, StrEq("1:5")));
 }

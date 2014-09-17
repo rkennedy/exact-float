@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <tuple>
+#include <locale>
 #include <boost/multiprecision/cpp_int.hpp>
 #include "analyze-float.h"
 
@@ -46,7 +47,7 @@ build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
     do {
         if (!result.empty()) {
             if (DecExp == 0)
-                result += '.';
+                result += std::use_facet<std::numpunct<char>>(os.getloc()).decimal_point();
         }
         mp::cpp_int Remainder;
         mp::divide_qr(Man, ten, Man, Remainder);
