@@ -55,7 +55,7 @@ build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
         assert(Remainder >= 0);
         result += DecDigits[int(Remainder)];
     } while (DecExp <= 0 || !Man.is_zero());
-    result += negative ? " -" : (os.flags() & os.showpos) ? " +" : "";
+    result += negative ? "-" : (os.flags() & os.showpos) ? "+" : "";
     os << std::string(result.rbegin(), result.rend());
 }
 
