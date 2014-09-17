@@ -44,18 +44,19 @@ namespace {
 void
 build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
 {
+    boost::io::ios_flags_saver flags(os);
+    boost::io::ios_fill_saver fill(os);
     mp::cpp_int const Factor = DecExp < 0
         ? mp::pow(mp::cpp_int(10), -DecExp)
         : mp::cpp_int(1);
     mp::cpp_int Remainder;
     mp::divide_qr(Man, Factor, Man, Remainder);
-    os << (negative ? "-" : os.flags() & os.showpos ? "+" : "");
-    boost::io::ios_flags_saver flags(os);
-    os << std::noshowpos;
-    os << Man;
+    char const sign = negative ? '-' : '+';
+    if (negative || os.flags() & os.showpos)
+        os << sign;
+    os << std::noshowpos << Man;
     if (!Remainder.is_zero() || os.flags() & os.showpoint) {
         os << std::use_facet<std::numpunct<char>>(os.getloc()).decimal_point();
-        boost::io::ios_fill_saver fill(os);
         os << std::setw(-DecExp) << std::setfill('0') << Remainder;
     }
 }
