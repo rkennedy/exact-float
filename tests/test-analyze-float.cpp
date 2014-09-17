@@ -203,6 +203,16 @@ TEST_F(Serialization, honor_showpos_for_positive)
                 ResultOf(str, StrEq("+1.5")));
 }
 
+TEST_F(Serialization, no_print_pos_sign_on_negative)
+{
+    // If the whole and fractional parts are printed as standalone numbers,
+    // then showpos might cause them to incorrectly include signs of their
+    // own.
+    FloatInfo const value { -1.5 };
+    EXPECT_THAT(os << std::showpos << value,
+                ResultOf(str, StrEq("-1.5")));
+}
+
 TEST_F(Serialization, ignore_noshowpos_for_negative)
 {
     FloatInfo const value { -1.5 };

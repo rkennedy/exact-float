@@ -37,27 +37,24 @@ std::ostream& operator<<(std::ostream& os, float_type const type)
 
 namespace {
 
-// Repeatedly divide by 10 and use remainders to create decimal string
+// Print Man * 10^DecExp
 void
 build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
 {
-    mp::cpp_int const ten(10);
-    char const DecDigits[11] = "0123456789";
-    std::string result;
-    do {
-        if (!result.empty()) {
-            if (DecExp == 0)
-                result += std::use_facet<std::numpunct<char>>(os.getloc()).decimal_point();
-        }
-        mp::cpp_int Remainder;
-        mp::divide_qr(Man, ten, Man, Remainder);
-        ++DecExp;
-        assert(Remainder < 10);
-        assert(Remainder >= 0);
-        result += DecDigits[int(Remainder)];
-    } while (DecExp <= 0 || !Man.is_zero());
-    result += negative ? "-" : (os.flags() & os.showpos) ? "+" : "";
-    os << std::string(result.rbegin(), result.rend());
+    mp::cpp_int const Factor = DecExp < 0
+        ? mp::pow(mp::cpp_int(10), -DecExp)
+        : mp::cpp_int(1);
+    mp::cpp_int Remainder;
+    mp::divide_qr(Man, Factor, Man, Remainder);
+    os << (negative ? "-" : (os.flags() & os.showpos) ? "+" : "");
+    // TODO Restore original showpos state
+    os << std::noshowpos;
+    os << Man;
+    if (!Remainder.is_zero()) {
+        os << std::use_facet<std::numpunct<char>>(os.getloc()).decimal_point();
+        // TODO Watch out for leading zeros
+        os << Remainder;
+    }
 }
 
 /**
