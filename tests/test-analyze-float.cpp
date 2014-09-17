@@ -1,5 +1,6 @@
 #include "config.h"
 #include <cmath>
+#include <ios>
 #include <iostream>
 #include <array>
 #include <limits>
@@ -221,6 +222,13 @@ TEST_F(Serialization, ignore_noshowpos_for_negative)
     FloatInfo const value { -1.5 };
     EXPECT_THAT(os << std::noshowpos << value,
                 ResultOf(str, StrEq("-1.5")));
+}
+
+TEST_F(Serialization, restore_showpos)
+{
+    FloatInfo const value { 1.5 };
+    EXPECT_THAT(os << std::showpos << value << value,
+                ResultOf(str, StrEq("+1.5+1.5")));
 }
 
 TEST_F(Serialization, honor_locale_decimal_separator)

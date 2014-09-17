@@ -1,11 +1,14 @@
 #undef _GLIBCXX_DEBUG
 #include "config.h"
 #include <cstdint>
+#include <ios>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <tuple>
 #include <locale>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/io/ios_state.hpp>
 #include "analyze-float.h"
 
 namespace mp = boost::multiprecision;
@@ -47,7 +50,7 @@ build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
     mp::cpp_int Remainder;
     mp::divide_qr(Man, Factor, Man, Remainder);
     os << (negative ? "-" : (os.flags() & os.showpos) ? "+" : "");
-    // TODO Restore original showpos state
+    boost::io::ios_flags_saver saver(os);
     os << std::noshowpos;
     os << Man;
     if (!Remainder.is_zero()) {
