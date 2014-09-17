@@ -52,8 +52,8 @@ build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
     os << Man;
     if (!Remainder.is_zero()) {
         os << std::use_facet<std::numpunct<char>>(os.getloc()).decimal_point();
-        // TODO Watch out for leading zeros
-        os << Remainder;
+        // TODO Restore these states?
+        os << std::setw(-DecExp) << std::setfill('0') << Remainder;
     }
 }
 
