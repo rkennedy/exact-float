@@ -50,12 +50,12 @@ build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
     mp::cpp_int Remainder;
     mp::divide_qr(Man, Factor, Man, Remainder);
     os << (negative ? "-" : (os.flags() & os.showpos) ? "+" : "");
-    boost::io::ios_flags_saver saver(os);
+    boost::io::ios_flags_saver flags(os);
     os << std::noshowpos;
     os << Man;
     if (!Remainder.is_zero()) {
         os << std::use_facet<std::numpunct<char>>(os.getloc()).decimal_point();
-        // TODO Restore these states?
+        boost::io::ios_fill_saver fill(os);
         os << std::setw(-DecExp) << std::setfill('0') << Remainder;
     }
 }
