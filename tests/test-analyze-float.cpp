@@ -238,6 +238,13 @@ TEST_F(Serialization, restore_fill)
                 ResultOf(str, StrEq("-1.0625$$$-1")));
 }
 
+TEST_F(Serialization, honor_showpoint)
+{
+    FloatInfo const value { 1. };
+    EXPECT_THAT(os << std::showpoint << value,
+                ResultOf(str, StrEq("1.0")));
+}
+
 TEST_F(Serialization, honor_locale_decimal_separator)
 {
     struct test_punct: std::numpunct<char>
