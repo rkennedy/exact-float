@@ -245,6 +245,13 @@ TEST_F(Serialization, honor_showpoint)
                 ResultOf(str, StrEq("1.0")));
 }
 
+TEST_F(Serialization, showpoint_with_ten_multiple)
+{
+    FloatInfo const value { 200. };
+    EXPECT_THAT(os << std::showpoint << value,
+                ResultOf(str, StrEq("200.0")));
+}
+
 TEST_F(Serialization, honor_locale_decimal_separator)
 {
     struct test_punct: std::numpunct<char>
