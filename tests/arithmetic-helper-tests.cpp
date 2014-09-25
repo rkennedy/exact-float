@@ -123,3 +123,8 @@ ReduceCase const reduce_cases[] {
 INSTANTIATE_TEST_CASE_P(ReduceCases,
                         TestReduceExponent,
                         ::testing::ValuesIn(reduce_cases));
+
+TEST(Thousands, basic_separator)
+{
+    EXPECT_THAT(insert_thousands("\3", ',', "1234567890"), std::string("1,234,567,890"));
+}

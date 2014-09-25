@@ -6,7 +6,12 @@
 #include <iostream>
 #include <string>
 #include <tuple>
+#include <vector>
+#include <deque>
+#include <iterator>
+#include <algorithm>
 #include <locale>
+#include <sstream>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/io/ios_state.hpp>
 #include "analyze-float.h"
@@ -40,25 +45,68 @@ std::ostream& operator<<(std::ostream& os, float_type const type)
 
 namespace {
 
+struct tail_repeater
+{
+    tail_repeater(std::string const& source):
+        m_source(source),
+        m_iterator(m_source.begin())
+    { }
+    char operator()() {
+        if (m_iterator == m_source.end())
+            return m_source.at(m_source.size() - 1);
+        return *m_iterator++;
+    }
+private:
+    std::string m_source;
+    std::string::const_iterator m_iterator;
+};
+
+std::string insert_thousands(std::string const& pattern, char const separator, std::string const& subject)
+{
+    std::vector<std::tuple<unsigned, char>> separators;
+    tail_repeater next_count{pattern};
+    for (unsigned total{0}, x{static_cast<unsigned>(next_count())};
+         total + x < subject.size();
+         x = static_cast<unsigned>(next_count()))
+    {
+        total += x;
+        separators.emplace_back(total, separator);
+    }
+    std::vector<std::tuple<unsigned, char>> chars;
+    for (auto i = 0; i < subject.size(); ++i) {
+        chars.emplace_back(i, subject[subject.size() - 1 - i]);
+    }
+    std::deque<std::tuple<unsigned, char>> pre_result;
+    std::merge(chars.begin(), chars.end(),
+               separators.begin(), separators.end(),
+               std::front_inserter(pre_result));
+
+    std::string result;
+    for (auto it: pre_result)
+        result.push_back(std::get<1>(it));
+    return result;
+}
+
 // Print Man * 10^DecExp
 void
 build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
 {
-    boost::io::ios_flags_saver flags(os);
-    boost::io::ios_fill_saver fill(os);
     mp::cpp_int const Factor = DecExp < 0
         ? mp::pow(mp::cpp_int(10), -DecExp)
         : mp::cpp_int(1);
     mp::cpp_int Remainder;
     mp::divide_qr(Man, Factor, Man, Remainder);
+
+    std::ostringstream result;
     char const sign = negative ? '-' : '+';
     if (negative || os.flags() & os.showpos)
-        os << sign;
-    os << std::noshowpos << Man;
+        result << sign;
+    result << insert_thousands("\3", ',', boost::lexical_cast<std::string>(Man));
     if (!Remainder.is_zero() || os.flags() & os.showpoint) {
-        os << std::use_facet<std::numpunct<char>>(os.getloc()).decimal_point();
-        os << std::setw(-DecExp) << std::setfill('0') << Remainder;
+        result << std::use_facet<std::numpunct<char>>(os.getloc()).decimal_point();
+        result << std::setw(-DecExp) << std::setfill('0') << Remainder;
     }
+    os << result.str();
 }
 
 /**
