@@ -245,7 +245,7 @@ TEST_F(Serialization, honor_showpoint)
                 ResultOf(str, StrEq("1.0")));
 }
 
-TEST_F(Serialization, showpoint_with_ten_multiple)
+TEST_F(Serialization, showpoint_greater_than_ten)
 {
     FloatInfo const value { 200. };
     EXPECT_THAT(os << std::showpoint << value,
