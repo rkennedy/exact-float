@@ -9,11 +9,16 @@
 #include <vector>
 #include <deque>
 #include <iterator>
-#include <algorithm>
 #include <locale>
 #include <sstream>
+#include <type_traits>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/io/ios_state.hpp>
+#include <boost/range/counting_range.hpp>
+#include <boost/range/algorithm/merge.hpp>
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/range/adaptor/reversed.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 #include "analyze-float.h"
 
 namespace mp = boost::multiprecision;
@@ -61,6 +66,104 @@ private:
     std::string::const_iterator m_iterator;
 };
 
+namespace {
+template <size_t... Indices>
+struct indices
+{
+    using type = indices<Indices..., sizeof...(Indices)>;
+};
+
+template <size_t N>
+struct build_indices
+{
+    using type = typename build_indices<N - 1>::type::type;
+};
+
+template <>
+struct build_indices<0>
+{
+    using type = indices<>;
+};
+
+}
+
+template <typename... T>
+struct zip_iterator
+{
+    using value_type = std::tuple<typename T::value_type...>;
+    using difference_type = std::ptrdiff_t;
+    using pointer = value_type*;
+    using reference = std::tuple<typename T::reference...>;
+    using iterator_category = std::forward_iterator_tag;
+
+    zip_iterator(T const&... iterators):
+        m_iterators(iterators...)
+    { }
+
+    value_type operator*() const {
+        return dereference(index_type{});
+    }
+
+    zip_iterator& operator++() {
+        increment(index_type{});
+        return *this;
+    }
+
+    zip_iterator operator++(int) {
+        zip_iterator other(*this);
+        ++*this;
+        return other;
+    }
+
+    bool operator==(zip_iterator const& other) const {
+        return other.m_iterators == m_iterators;
+    }
+
+    bool operator!=(zip_iterator const& other) const {
+        return other.m_iterators != m_iterators;
+    }
+
+private:
+    using index_type = typename build_indices<sizeof...(T)>::type;
+
+    template <size_t... Indices>
+    value_type dereference(indices<Indices...> const&) const {
+        return std::make_tuple(*std::get<Indices>(m_iterators)...);
+    }
+
+    template <size_t... Indices>
+    void increment(indices<Indices...> const&) {
+        std::make_tuple(++std::get<Indices>(m_iterators)...);
+    }
+
+private:
+    std::tuple<T...> m_iterators;
+};
+
+template <typename... T>
+zip_iterator<T...> make_zip_iterator(T&&... args) {
+    return zip_iterator<T...>(std::forward<T>(args)...);
+}
+
+template <typename... Ranges>
+auto combine(Ranges&&... args) -> decltype(
+    boost::make_iterator_range(
+        make_zip_iterator(std::begin(args)...),
+        make_zip_iterator(std::end(args)...))) {
+    return boost::make_iterator_range(
+        make_zip_iterator(std::begin(args)...),
+        make_zip_iterator(std::end(args)...));
+}
+
+template <size_t I>
+struct getter
+{
+    template <typename T>
+    auto operator()(T&& arg) const -> decltype(std::get<I>(std::forward<T>(arg))) {
+        return std::get<I>(std::forward<T>(arg));
+    }
+};
+
 std::string insert_thousands(std::string const& pattern, char const separator, std::string const& subject)
 {
     std::vector<std::tuple<unsigned, char>> separators;
@@ -72,18 +175,16 @@ std::string insert_thousands(std::string const& pattern, char const separator, s
         total += x;
         separators.emplace_back(total, separator);
     }
-    std::vector<std::tuple<unsigned, char>> chars;
-    for (auto i = 0; i < subject.size(); ++i) {
-        chars.emplace_back(i, subject[subject.size() - 1 - i]);
-    }
+    auto const chars = ::combine(
+        boost::counting_range(0ul, subject.size()),
+        subject | boost::adaptors::reversed);
     std::deque<std::tuple<unsigned, char>> pre_result;
-    std::merge(chars.begin(), chars.end(),
-               separators.begin(), separators.end(),
-               std::front_inserter(pre_result));
+    boost::merge(chars, separators,
+                 std::front_inserter(pre_result));
 
     std::string result;
-    for (auto it: pre_result)
-        result.push_back(std::get<1>(it));
+    boost::copy(pre_result | boost::adaptors::transformed(getter<1>()),
+                std::back_inserter(result));
     return result;
 }
 
