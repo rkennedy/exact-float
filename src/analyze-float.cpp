@@ -164,14 +164,16 @@ struct getter
 void insert_thousands(std::ostream& os, std::string const& pattern, char const separator, std::string const& subject)
 {
     std::vector<std::tuple<unsigned, char>> separators;
-    tail_repeater next_count{pattern};
-    char x = next_count();
-    for (unsigned total{0};
-         x > 0 && x != CHAR_MAX && total + x < subject.size();
-         x = static_cast<unsigned>(next_count()))
-    {
-        total += x;
-        separators.emplace_back(total, separator);
+    if (!pattern.empty()) {
+        tail_repeater next_count{pattern};
+        char x = next_count();
+        for (unsigned total{0};
+             x > 0 && x != CHAR_MAX && total + x < subject.size();
+             x = static_cast<unsigned>(next_count()))
+        {
+            total += x;
+            separators.emplace_back(total, separator);
+        }
     }
     auto const chars = ::combine(
         boost::counting_range(0ul, subject.size()),
@@ -198,9 +200,10 @@ build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
     char const sign = negative ? '-' : '+';
     if (negative || os.flags() & os.showpos)
         result << sign;
-    insert_thousands(result, "\3", ',', boost::lexical_cast<std::string>(Man));
+    std::numpunct<char> const& punct = std::use_facet<std::numpunct<char>>(os.getloc());
+    insert_thousands(result, punct.grouping(), punct.thousands_sep(), boost::lexical_cast<std::string>(Man));
     if (!Remainder.is_zero() || os.flags() & os.showpoint) {
-        result << std::use_facet<std::numpunct<char>>(os.getloc()).decimal_point();
+        result << punct.decimal_point();
         result << std::setw(-DecExp) << std::setfill('0') << Remainder;
     }
     os << result.str();

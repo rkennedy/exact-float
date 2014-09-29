@@ -271,11 +271,11 @@ TEST_F(Serialization, honor_basic_thousands_separator)
     struct test_punct: std::numpunct<char>
     {
         std::string do_grouping() const override {
-            return "\3";
+            return "\2";
         }
     };
-    FloatInfo const value { 12345678.0 };
+    FloatInfo const value { 1234567.0 };
     os.imbue(std::locale(os.getloc(), new test_punct()));
     EXPECT_THAT(os << value,
-                ResultOf(str, StrEq("12,345,678")));
+                ResultOf(str, StrEq("1,23,45,67")));
 }
