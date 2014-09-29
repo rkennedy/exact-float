@@ -126,5 +126,40 @@ INSTANTIATE_TEST_CASE_P(ReduceCases,
 
 TEST(Thousands, basic_separator)
 {
-    EXPECT_THAT(insert_thousands("\3", ',', "1234567890"), std::string("1,234,567,890"));
+    std::ostringstream os;
+    insert_thousands(os, "\3", ',', "1234567890");
+    EXPECT_THAT(os.str(), std::string("1,234,567,890"));
 }
+
+TEST(Thousands, varying_separator_distance)
+{
+    std::ostringstream os;
+    insert_thousands(os, "\1\2\3", ',', "1234567890");
+    EXPECT_THAT(os.str(), std::string("1,234,567,89,0"));
+}
+
+TEST(Thousands, zero_separator_means_unlimited)
+{
+    std::ostringstream os;
+    std::string const separators("\3\0\3", 3);
+    insert_thousands(os, separators, ',', "1234567890");
+    EXPECT_THAT(os.str(), std::string("1234567,890"));
+}
+
+TEST(Thousands, max_separator_means_unlimited)
+{
+    std::ostringstream os;
+    std::string const separators("\2");
+    insert_thousands(os, separators + char(CHAR_MAX) + '\3', ',', "1234567890");
+    EXPECT_THAT(os.str(), std::string("12345678,90"));
+}
+
+#if CHAR_MIN < 0
+TEST(Thousands, negative_separator_means_unlimited)
+{
+    std::ostringstream os;
+    std::string const separators("\2");
+    insert_thousands(os, separators + char(-1) + '\3', ',', "1234567890");
+    EXPECT_THAT(os.str(), std::string("12345678,90"));
+}
+#endif

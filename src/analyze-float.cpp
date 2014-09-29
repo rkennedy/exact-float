@@ -66,7 +66,6 @@ private:
     std::string::const_iterator m_iterator;
 };
 
-namespace {
 template <size_t... Indices>
 struct indices
 {
@@ -84,8 +83,6 @@ struct build_indices<0>
 {
     using type = indices<>;
 };
-
-}
 
 template <typename... T>
 struct zip_iterator
@@ -164,12 +161,13 @@ struct getter
     }
 };
 
-std::string insert_thousands(std::string const& pattern, char const separator, std::string const& subject)
+void insert_thousands(std::ostream& os, std::string const& pattern, char const separator, std::string const& subject)
 {
     std::vector<std::tuple<unsigned, char>> separators;
     tail_repeater next_count{pattern};
-    for (unsigned total{0}, x{static_cast<unsigned>(next_count())};
-         total + x < subject.size();
+    char x = next_count();
+    for (unsigned total{0};
+         x > 0 && x != CHAR_MAX && total + x < subject.size();
          x = static_cast<unsigned>(next_count()))
     {
         total += x;
@@ -182,10 +180,8 @@ std::string insert_thousands(std::string const& pattern, char const separator, s
     boost::merge(chars, separators,
                  std::front_inserter(pre_result));
 
-    std::string result;
     boost::copy(pre_result | boost::adaptors::transformed(getter<1>()),
-                std::back_inserter(result));
-    return result;
+                std::ostream_iterator<char>(os));
 }
 
 // Print Man * 10^DecExp
@@ -202,7 +198,7 @@ build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
     char const sign = negative ? '-' : '+';
     if (negative || os.flags() & os.showpos)
         result << sign;
-    result << insert_thousands("\3", ',', boost::lexical_cast<std::string>(Man));
+    insert_thousands(result, "\3", ',', boost::lexical_cast<std::string>(Man));
     if (!Remainder.is_zero() || os.flags() & os.showpoint) {
         result << std::use_facet<std::numpunct<char>>(os.getloc()).decimal_point();
         result << std::setw(-DecExp) << std::setfill('0') << Remainder;
