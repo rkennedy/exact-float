@@ -1,22 +1,17 @@
 #undef _GLIBCXX_DEBUG
 #include "config.h"
 #include <cstdint>
-#include <ios>
 #include <iomanip>
+#include <ios>
 #include <iostream>
+#include <limits>
+#include <locale>
+#include <map>
+#include <sstream>
 #include <string>
 #include <tuple>
-#include <vector>
-#include <deque>
-#include <iterator>
-#include <locale>
-#include <sstream>
 #include <type_traits>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <boost/io/ios_state.hpp>
-#include <boost/range/counting_range.hpp>
-#include <boost/range/algorithm/copy.hpp>
-#include <boost/range/adaptor/map.hpp>
 #include "analyze-float.h"
 
 namespace mp = boost::multiprecision;
@@ -64,82 +59,21 @@ private:
     std::string::const_iterator m_iterator;
 };
 
-template <typename I1, typename I2>
-struct zip_iterator
+void insert_thousands(std::ostream& os, std::string const& pattern, char const separator, std::string subject)
 {
-    using value_type = std::pair<typename I1::value_type, typename I2::value_type>;
-    using difference_type = std::ptrdiff_t;
-    using pointer = value_type*;
-    using reference = std::pair<typename I1::value_type, typename I2::value_type>;
-    using iterator_category = std::forward_iterator_tag;
-
-    zip_iterator(I1 const& iterator1, I2 const& iterator2):
-        m_iterators(iterator1, iterator2)
-    { }
-
-    value_type operator*() const {
-        return value_type(*m_iterators.first, *m_iterators.second);
-    }
-
-    zip_iterator& operator++() {
-        ++m_iterators.first;
-        ++m_iterators.second;
-        return *this;
-    }
-
-    zip_iterator operator++(int) {
-        zip_iterator other(*this);
-        ++*this;
-        return other;
-    }
-
-    bool operator==(zip_iterator const& other) const {
-        return other.m_iterators == m_iterators;
-    }
-
-    bool operator!=(zip_iterator const& other) const {
-        return other.m_iterators != m_iterators;
-    }
-
-private:
-    std::pair<I1, I2> m_iterators;
-};
-
-template <typename I1, typename I2>
-zip_iterator<I1, I2> make_zip_iterator(I1&& i1, I2&& i2) {
-    return zip_iterator<I1, I2>(std::forward<I1>(i1), std::forward<I2>(i2));
-}
-
-template <typename Range1, typename Range2>
-auto combine(Range1&& arg1, Range2&& arg2) -> decltype(
-    boost::make_iterator_range(
-        make_zip_iterator(std::begin(arg1), std::begin(arg2)),
-        make_zip_iterator(std::end(arg1), std::end(arg2)))) {
-    return boost::make_iterator_range(
-        make_zip_iterator(std::begin(arg1), std::begin(arg2)),
-        make_zip_iterator(std::end(arg1), std::end(arg2)));
-}
-
-void insert_thousands(std::ostream& os, std::string const& pattern, char const separator, std::string const& subject)
-{
-    std::multimap<unsigned, char> result;
     if (!pattern.empty()) {
+        size_t const subject_size{subject.size()};
         tail_repeater next_count{pattern};
         char x = next_count();
         for (unsigned total{0};
-             x > 0 && x != CHAR_MAX && total + x < subject.size();
+             x > 0 && x != CHAR_MAX && total + x < subject_size;
              x = next_count())
         {
             total += x;
-            result.emplace(subject.size() - total, separator);
+            subject.insert(subject_size - total, 1, separator);
         }
     }
-    auto const chars = ::combine(
-        boost::counting_range(0ul, subject.size()),
-        subject);
-    result.insert(std::begin(chars), std::end(chars));
-    boost::copy(result | boost::adaptors::map_values,
-                std::ostream_iterator<char>(os));
+    os << subject;
 }
 
 // Print Man * 10^DecExp
