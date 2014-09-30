@@ -313,3 +313,14 @@ TEST_F(Serialization, honor_alternative_separator)
     EXPECT_THAT(os << value,
                 ResultOf(str, StrEq("1j23j45j67")));
 }
+
+TEST_F(Serialization, no_separator_in_fraction)
+{
+    NiceMock<MockNumpunct> facet;
+    ON_CALL(facet, do_grouping())
+        .WillByDefault(Return("\2"));
+    FloatInfo const value { 0.0625 };
+    os.imbue(std::locale(os.getloc(), &facet));
+    EXPECT_THAT(os << value,
+                ResultOf(str, StrEq("0.0625")));
+}
