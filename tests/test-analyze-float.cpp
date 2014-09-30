@@ -19,6 +19,8 @@ using ::testing::Eq;
 using ::testing::StrEq;
 using ::testing::_;
 using ::testing::ResultOf;
+using ::testing::Return;
+using ::testing::NiceMock;
 using namespace boost::multiprecision::literals;
 
 using anyfloat = boost::variant<boost::float80_t, boost::float64_t, boost::float32_t>;
@@ -155,6 +157,13 @@ std::ostream& operator<<(std::ostream& os, SerializationParam const& sp)
 
 class Serialization: public ::testing::TestWithParam<SerializationParam>
 {
+protected:
+    struct MockNumpunct: std::numpunct<char>
+    {
+        MOCK_CONST_METHOD0(do_thousands_sep, char());
+        MOCK_CONST_METHOD0(do_grouping, std::string());
+        MockNumpunct(): std::numpunct<char>(1) { }
+    };
 public:
     std::ostringstream os;
     static std::string str(std::ostream const& s) {
@@ -268,14 +277,26 @@ TEST_F(Serialization, honor_locale_decimal_separator)
 
 TEST_F(Serialization, honor_basic_thousands_separator)
 {
-    struct test_punct: std::numpunct<char>
-    {
-        std::string do_grouping() const override {
-            return "\2";
-        }
-    };
+    NiceMock<MockNumpunct> facet;
+    ON_CALL(facet, do_grouping())
+        .WillByDefault(Return("\2"));
+    ON_CALL(facet, do_thousands_sep())
+        .WillByDefault(Return(','));
     FloatInfo const value { 1234567.0 };
-    os.imbue(std::locale(os.getloc(), new test_punct()));
+    os.imbue(std::locale(os.getloc(), &facet));
     EXPECT_THAT(os << value,
                 ResultOf(str, StrEq("1,23,45,67")));
+}
+
+TEST_F(Serialization, honor_alternative_separator)
+{
+    NiceMock<MockNumpunct> facet;
+    ON_CALL(facet, do_grouping())
+        .WillByDefault(Return("\2"));
+    ON_CALL(facet, do_thousands_sep())
+        .WillByDefault(Return('j'));
+    FloatInfo const value { 1234567.0 };
+    os.imbue(std::locale(os.getloc(), &facet));
+    EXPECT_THAT(os << value,
+                ResultOf(str, StrEq("1j23j45j67")));
 }

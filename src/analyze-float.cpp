@@ -15,10 +15,8 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/io/ios_state.hpp>
 #include <boost/range/counting_range.hpp>
-#include <boost/range/algorithm/merge.hpp>
 #include <boost/range/algorithm/copy.hpp>
-#include <boost/range/adaptor/reversed.hpp>
-#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/adaptor/map.hpp>
 #include "analyze-float.h"
 
 namespace mp = boost::multiprecision;
@@ -66,43 +64,26 @@ private:
     std::string::const_iterator m_iterator;
 };
 
-template <size_t... Indices>
-struct indices
-{
-    using type = indices<Indices..., sizeof...(Indices)>;
-};
-
-template <size_t N>
-struct build_indices
-{
-    using type = typename build_indices<N - 1>::type::type;
-};
-
-template <>
-struct build_indices<0>
-{
-    using type = indices<>;
-};
-
-template <typename... T>
+template <typename I1, typename I2>
 struct zip_iterator
 {
-    using value_type = std::tuple<typename T::value_type...>;
+    using value_type = std::pair<typename I1::value_type, typename I2::value_type>;
     using difference_type = std::ptrdiff_t;
     using pointer = value_type*;
-    using reference = std::tuple<typename T::reference...>;
+    using reference = std::pair<typename I1::value_type, typename I2::value_type>;
     using iterator_category = std::forward_iterator_tag;
 
-    zip_iterator(T const&... iterators):
-        m_iterators(iterators...)
+    zip_iterator(I1 const& iterator1, I2 const& iterator2):
+        m_iterators(iterator1, iterator2)
     { }
 
     value_type operator*() const {
-        return dereference(index_type{});
+        return value_type(*m_iterators.first, *m_iterators.second);
     }
 
     zip_iterator& operator++() {
-        increment(index_type{});
+        ++m_iterators.first;
+        ++m_iterators.second;
         return *this;
     }
 
@@ -121,68 +102,43 @@ struct zip_iterator
     }
 
 private:
-    using index_type = typename build_indices<sizeof...(T)>::type;
-
-    template <size_t... Indices>
-    value_type dereference(indices<Indices...> const&) const {
-        return std::make_tuple(*std::get<Indices>(m_iterators)...);
-    }
-
-    template <size_t... Indices>
-    void increment(indices<Indices...> const&) {
-        std::make_tuple(++std::get<Indices>(m_iterators)...);
-    }
-
-private:
-    std::tuple<T...> m_iterators;
+    std::pair<I1, I2> m_iterators;
 };
 
-template <typename... T>
-zip_iterator<T...> make_zip_iterator(T&&... args) {
-    return zip_iterator<T...>(std::forward<T>(args)...);
+template <typename I1, typename I2>
+zip_iterator<I1, I2> make_zip_iterator(I1&& i1, I2&& i2) {
+    return zip_iterator<I1, I2>(std::forward<I1>(i1), std::forward<I2>(i2));
 }
 
-template <typename... Ranges>
-auto combine(Ranges&&... args) -> decltype(
+template <typename Range1, typename Range2>
+auto combine(Range1&& arg1, Range2&& arg2) -> decltype(
     boost::make_iterator_range(
-        make_zip_iterator(std::begin(args)...),
-        make_zip_iterator(std::end(args)...))) {
+        make_zip_iterator(std::begin(arg1), std::begin(arg2)),
+        make_zip_iterator(std::end(arg1), std::end(arg2)))) {
     return boost::make_iterator_range(
-        make_zip_iterator(std::begin(args)...),
-        make_zip_iterator(std::end(args)...));
+        make_zip_iterator(std::begin(arg1), std::begin(arg2)),
+        make_zip_iterator(std::end(arg1), std::end(arg2)));
 }
-
-template <size_t I>
-struct getter
-{
-    template <typename T>
-    auto operator()(T&& arg) const -> decltype(std::get<I>(std::forward<T>(arg))) {
-        return std::get<I>(std::forward<T>(arg));
-    }
-};
 
 void insert_thousands(std::ostream& os, std::string const& pattern, char const separator, std::string const& subject)
 {
-    std::vector<std::tuple<unsigned, char>> separators;
+    std::multimap<unsigned, char> result;
     if (!pattern.empty()) {
         tail_repeater next_count{pattern};
         char x = next_count();
         for (unsigned total{0};
              x > 0 && x != CHAR_MAX && total + x < subject.size();
-             x = static_cast<unsigned>(next_count()))
+             x = next_count())
         {
             total += x;
-            separators.emplace_back(total, separator);
+            result.emplace(subject.size() - total, separator);
         }
     }
     auto const chars = ::combine(
         boost::counting_range(0ul, subject.size()),
-        subject | boost::adaptors::reversed);
-    std::deque<std::tuple<unsigned, char>> pre_result;
-    boost::merge(chars, separators,
-                 std::front_inserter(pre_result));
-
-    boost::copy(pre_result | boost::adaptors::transformed(getter<1>()),
+        subject);
+    result.insert(std::begin(chars), std::end(chars));
+    boost::copy(result | boost::adaptors::map_values,
                 std::ostream_iterator<char>(os));
 }
 
