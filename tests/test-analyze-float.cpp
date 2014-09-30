@@ -162,7 +162,25 @@ protected:
     {
         MOCK_CONST_METHOD0(do_thousands_sep, char());
         MOCK_CONST_METHOD0(do_grouping, std::string());
-        MockNumpunct(): std::numpunct<char>(1) { }
+        MOCK_CONST_METHOD0(do_decimal_point, char());
+        MockNumpunct(): std::numpunct<char>(1) {
+            ON_CALL(*this, do_thousands_sep())
+                .WillByDefault(testing::Invoke(this, &MockNumpunct::real_do_thousands_sep));
+            ON_CALL(*this, do_grouping())
+                .WillByDefault(testing::Invoke(this, &MockNumpunct::real_do_grouping));
+            ON_CALL(*this, do_decimal_point())
+                .WillByDefault(testing::Invoke(this, &MockNumpunct::real_do_decimal_point));
+        }
+    private:
+        char real_do_thousands_sep() const {
+             return std::numpunct<char>::do_thousands_sep();
+        }
+        std::string real_do_grouping() const {
+            return std::numpunct<char>::do_grouping();
+        }
+        char real_do_decimal_point() const {
+            return std::numpunct<char>::do_decimal_point();
+        }
     };
 public:
     std::ostringstream os;
@@ -263,14 +281,11 @@ TEST_F(Serialization, showpoint_greater_than_ten)
 
 TEST_F(Serialization, honor_locale_decimal_separator)
 {
-    struct test_punct: std::numpunct<char>
-    {
-        char_type do_decimal_point() const override {
-            return ':';
-        }
-    };
+    NiceMock<MockNumpunct> facet;
+    EXPECT_CALL(facet, do_decimal_point())
+        .WillRepeatedly(Return(':'));
     FloatInfo const value { 1.5 };
-    os.imbue(std::locale(os.getloc(), new test_punct()));
+    os.imbue(std::locale(os.getloc(), &facet));
     EXPECT_THAT(os << value,
                 ResultOf(str, StrEq("1:5")));
 }
@@ -278,10 +293,8 @@ TEST_F(Serialization, honor_locale_decimal_separator)
 TEST_F(Serialization, honor_basic_thousands_separator)
 {
     NiceMock<MockNumpunct> facet;
-    ON_CALL(facet, do_grouping())
-        .WillByDefault(Return("\2"));
-    ON_CALL(facet, do_thousands_sep())
-        .WillByDefault(Return(','));
+    EXPECT_CALL(facet, do_grouping())
+        .WillRepeatedly(Return("\2"));
     FloatInfo const value { 1234567.0 };
     os.imbue(std::locale(os.getloc(), &facet));
     EXPECT_THAT(os << value,
@@ -291,10 +304,10 @@ TEST_F(Serialization, honor_basic_thousands_separator)
 TEST_F(Serialization, honor_alternative_separator)
 {
     NiceMock<MockNumpunct> facet;
-    ON_CALL(facet, do_grouping())
-        .WillByDefault(Return("\2"));
-    ON_CALL(facet, do_thousands_sep())
-        .WillByDefault(Return('j'));
+    EXPECT_CALL(facet, do_grouping())
+        .WillRepeatedly(Return("\2"));
+    EXPECT_CALL(facet, do_thousands_sep())
+        .WillRepeatedly(Return('j'));
     FloatInfo const value { 1234567.0 };
     os.imbue(std::locale(os.getloc(), &facet));
     EXPECT_THAT(os << value,
