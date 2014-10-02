@@ -27,7 +27,7 @@ public:
     {
         try {
             T const ld = boost::lexical_cast<T>(m_arg);
-            std::cout << m_arg << " = " << exact(ld) << std::endl;
+            std::cout << m_arg << " = " << std::showpos << exact(ld) << std::endl;
         } catch (boost::bad_lexical_cast const& e) {
             float_traits const& traits = float_trait_map.at(typeid(T));
             std::cout << boost::format("%s doesn't look like %s %s.") % m_arg % traits.article % traits.name << std::endl;
