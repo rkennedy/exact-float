@@ -265,6 +265,55 @@ TEST_F(Serialization, restore_fill)
                 ResultOf(str, StrEq("-1.0625$$$-1")));
 }
 
+TEST_F(Serialization, uses_setw)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::setw(9) << value,
+                ResultOf(str, testing::SizeIs(9)));
+}
+
+TEST_F(Serialization, uses_fill)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::setfill('&') << std::setw(9) << value,
+                ResultOf(str, StrEq("&&-1.0625")));
+}
+
+TEST_F(Serialization, aligns_right_by_default)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::setw(9) << value,
+                ResultOf(str, StrEq("  -1.0625")));
+}
+
+TEST_F(Serialization, aligns_right)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::right << std::setw(9) << value,
+                ResultOf(str, StrEq("  -1.0625")));
+}
+
+TEST_F(Serialization, aligns_left)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::left << std::setw(9) << value,
+                ResultOf(str, StrEq("-1.0625  ")));
+}
+
+TEST_F(Serialization, aligns_internal)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::internal << std::setw(9) << value,
+                ResultOf(str, StrEq("-  1.0625")));
+}
+
+TEST_F(Serialization, ignores_internal_when_too_wide)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::internal << std::setw(4) << value,
+                ResultOf(str, StrEq("-1.0625")));
+}
+
 TEST_F(Serialization, honor_showpoint)
 {
     FloatInfo const value { 1. };

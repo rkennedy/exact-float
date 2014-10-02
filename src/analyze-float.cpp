@@ -87,16 +87,28 @@ build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
     mp::divide_qr(Man, Factor, Man, Remainder);
 
     std::ostringstream result;
-    char const sign = negative ? '-' : '+';
-    if (negative || os.flags() & os.showpos)
-        result << sign;
     std::numpunct<char> const& punct = std::use_facet<std::numpunct<char>>(os.getloc());
     insert_thousands(result, punct.grouping(), punct.thousands_sep(), boost::lexical_cast<std::string>(Man));
-    if (!Remainder.is_zero() || os.flags() & os.showpoint) {
+    auto const flags = os.flags();
+    if (!Remainder.is_zero() || flags & os.showpoint) {
         result << punct.decimal_point();
         result << std::setw(-DecExp) << std::setfill('0') << Remainder;
     }
+
+    size_t const target_width = os.width(0);
+    bool const include_sign{negative || flags & os.showpos};
+    size_t const result_width = result.str().size() + include_sign;
+    size_t const padding_width = result_width >= target_width ? 0 : target_width - result_width;
+    if ((flags & os.adjustfield) == 0 || flags & os.right)
+        os << std::string(padding_width, os.fill());
+    char const sign = negative ? '-' : '+';
+    if (include_sign)
+        os << sign;
+    if (flags & os.internal)
+        os << std::string(padding_width, os.fill());
     os << result.str();
+    if (flags & os.left)
+        os << std::string(padding_width, os.fill());
 }
 
 /**
