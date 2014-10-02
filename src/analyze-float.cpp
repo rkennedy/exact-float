@@ -1,9 +1,16 @@
 #undef _GLIBCXX_DEBUG
 #include "config.h"
 #include <cstdint>
+#include <iomanip>
+#include <ios>
 #include <iostream>
+#include <limits>
+#include <locale>
+#include <map>
+#include <sstream>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <boost/multiprecision/cpp_int.hpp>
 #include "analyze-float.h"
 
@@ -36,31 +43,72 @@ std::ostream& operator<<(std::ostream& os, float_type const type)
 
 namespace {
 
-// Repeatedly divide by 10 and use remainders to create decimal string
-std::string
-build_result(int DecExp, mp::cpp_int Man, bool negative, char decimal_point, char thousands_sep)
+struct tail_repeater
 {
-    mp::cpp_int const ten(10);
-    char const DecDigits[11] = "0123456789";
-    std::string result;
-    do {
-        if (!result.empty()) {
-            if (DecExp == 0)
-                result += decimal_point;
-            else if (thousands_sep == ' ' && (DecExp % 5) == 0)
-                result += ' ';
-            else if (thousands_sep != '\0' && thousands_sep != ' ' && (DecExp % 3) == 0)
-                result += thousands_sep;
+    tail_repeater(std::string const& source):
+        m_source(source),
+        m_iterator(m_source.begin())
+    { }
+    char operator()() {
+        if (m_iterator == m_source.end())
+            return m_source.at(m_source.size() - 1);
+        return *m_iterator++;
+    }
+private:
+    std::string m_source;
+    std::string::const_iterator m_iterator;
+};
+
+void insert_thousands(std::ostream& os, std::string const& pattern, char const separator, std::string subject)
+{
+    if (!pattern.empty()) {
+        size_t const subject_size{subject.size()};
+        tail_repeater next_count{pattern};
+        char x = next_count();
+        for (unsigned total{0};
+             x > 0 && x != CHAR_MAX && total + x < subject_size;
+             x = next_count())
+        {
+            total += x;
+            subject.insert(subject_size - total, 1, separator);
         }
-        mp::cpp_int Remainder;
-        mp::divide_qr(Man, ten, Man, Remainder);
-        ++DecExp;
-        assert(Remainder < 10);
-        assert(Remainder >= 0);
-        result += DecDigits[int(Remainder)];
-    } while (DecExp <= 0 || !Man.is_zero());
-    result += negative ? " -" : " +";
-    return std::string(result.rbegin(), result.rend());
+    }
+    os << subject;
+}
+
+// Print Man * 10^DecExp
+void
+build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
+{
+    mp::cpp_int const Factor = DecExp < 0
+        ? mp::pow(mp::cpp_int(10), -DecExp)
+        : mp::cpp_int(1);
+    mp::cpp_int Remainder;
+    mp::divide_qr(Man, Factor, Man, Remainder);
+
+    std::ostringstream result;
+    std::numpunct<char> const& punct = std::use_facet<std::numpunct<char>>(os.getloc());
+    insert_thousands(result, punct.grouping(), punct.thousands_sep(), boost::lexical_cast<std::string>(Man));
+    auto const flags = os.flags();
+    if (!Remainder.is_zero() || flags & os.showpoint) {
+        result << punct.decimal_point();
+        result << std::setw(-DecExp) << std::setfill('0') << Remainder;
+    }
+
+    size_t const target_width = os.width(0);
+    bool const include_sign{negative || flags & os.showpos};
+    size_t const result_width = result.str().size() + include_sign;
+    size_t const padding_width = result_width >= target_width ? 0 : target_width - result_width;
+    if ((flags & os.adjustfield) == 0 || flags & os.right)
+        os << std::string(padding_width, os.fill());
+    char const sign = negative ? '-' : '+';
+    if (include_sign)
+        os << sign;
+    if (flags & os.internal)
+        os << std::string(padding_width, os.fill());
+    os << result.str();
+    if (flags & os.left)
+        os << std::string(padding_width, os.fill());
 }
 
 /**
@@ -147,8 +195,8 @@ bool FloatInfo::operator==(FloatInfo const& other) const
 }
 
 // Value = Mantissa * 2^BinExp * 10^DecExp
-std::string
-FloatingBinPointToDecStr(mp::cpp_int Value, int BinExp, bool negative, char decimal_point /*= '.'*/, char thousands_sep /*= ' '*/)
+void
+FloatingBinPointToDecStr(std::ostream& os, mp::cpp_int Value, int BinExp, bool negative)
 {
     mp::cpp_int Man = Value;
 
@@ -161,7 +209,7 @@ FloatingBinPointToDecStr(mp::cpp_int Value, int BinExp, bool negative, char deci
 
     Man = reduce_binary_exponent(Man, BinExp);
 
-    return build_result(DecExp, Man, negative, decimal_point, thousands_sep);
+    build_result(os, DecExp, Man, negative);
 }
 
 std::ostream&
@@ -172,13 +220,15 @@ operator<<(std::ostream& os, FloatInfo const& info)
             unsigned const mantissa_offset = info.traits.mantissa_bits() - 1 + info.traits.implied_one;
             mp::cpp_int const full_mantissa = (mp::cpp_int(1) << mantissa_offset) | info.mantissa;
             mp::cpp_int const adjusted_exponent = info.exponent - info.traits.exponent_bias() - mantissa_offset;
-            return os << FloatingBinPointToDecStr(full_mantissa, adjusted_exponent.convert_to<int>(), info.negative, '.', ' ');
+            FloatingBinPointToDecStr(os, full_mantissa, adjusted_exponent.convert_to<int>(), info.negative);
+            return os;
         }
         case zero:
             return os << (info.negative ? "- 0" : "+ 0");
         case denormal:
             // TODO!
-            return os << FloatingBinPointToDecStr(info.mantissa, -info.traits.exponent_bias() - (info.traits.mantissa_bits() - 2), info.negative, '.', ' ');
+            FloatingBinPointToDecStr(os, info.mantissa, -info.traits.exponent_bias() - (info.traits.mantissa_bits() - 2), info.negative);
+            return os;
         case indefinite:
             return os << "Indefinite";
         case infinity:

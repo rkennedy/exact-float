@@ -1,8 +1,10 @@
 #include "config.h"
 #include <cmath>
+#include <ios>
 #include <iostream>
 #include <array>
 #include <limits>
+#include <locale>
 #include <typeindex>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -17,6 +19,8 @@ using ::testing::Eq;
 using ::testing::StrEq;
 using ::testing::_;
 using ::testing::ResultOf;
+using ::testing::Return;
+using ::testing::NiceMock;
 using namespace boost::multiprecision::literals;
 
 using anyfloat = boost::variant<boost::float80_t, boost::float64_t, boost::float32_t>;
@@ -153,10 +157,38 @@ std::ostream& operator<<(std::ostream& os, SerializationParam const& sp)
 
 class Serialization: public ::testing::TestWithParam<SerializationParam>
 {
+protected:
+    struct MockNumpunct: std::numpunct<char>
+    {
+        MOCK_CONST_METHOD0(do_thousands_sep, char());
+        MOCK_CONST_METHOD0(do_grouping, std::string());
+        MOCK_CONST_METHOD0(do_decimal_point, char());
+        MockNumpunct(): std::numpunct<char>(1) {
+            ON_CALL(*this, do_thousands_sep())
+                .WillByDefault(testing::Invoke(this, &MockNumpunct::real_do_thousands_sep));
+            ON_CALL(*this, do_grouping())
+                .WillByDefault(testing::Invoke(this, &MockNumpunct::real_do_grouping));
+            ON_CALL(*this, do_decimal_point())
+                .WillByDefault(testing::Invoke(this, &MockNumpunct::real_do_decimal_point));
+        }
+    private:
+        char real_do_thousands_sep() const {
+             return std::numpunct<char>::do_thousands_sep();
+        }
+        std::string real_do_grouping() const {
+            return std::numpunct<char>::do_grouping();
+        }
+        char real_do_decimal_point() const {
+            return std::numpunct<char>::do_decimal_point();
+        }
+    };
 public:
     std::ostringstream os;
     static std::string str(std::ostream const& s) {
         return dynamic_cast<std::ostringstream const&>(s).str();
+    }
+    void SetUp() override {
+        os.imbue(std::locale::classic());
     }
 };
 
@@ -171,23 +203,173 @@ TEST_P(Serialization, test)
 
 SerializationParam const serializations[] = {
 #ifdef BOOST_FLOAT80_C
-    { BOOST_FLOAT80_C(1.), "+ 1" },
-    { BOOST_FLOAT80_C(-1.5), "- 1.5" },
-    { BOOST_FLOAT80_C(87.285), "+ 87.28500 00000 00000 00333 06690 73875 46962 12708 95004 27246 09375" },
+    { BOOST_FLOAT80_C(1.), "1" },
+    { BOOST_FLOAT80_C(-1.5), "-1.5" },
+    { BOOST_FLOAT80_C(87.285), "87.28500" "00000" "00000" "00333" "06690" "73875" "46962" "12708" "95004" "27246" "09375" },
+    { BOOST_FLOAT80_C(0.0625), "0.0625" },
 #endif
 
 #ifdef BOOST_FLOAT64_C
-    { BOOST_FLOAT64_C(1.), "+ 1" },
-    { BOOST_FLOAT64_C(-1.5), "- 1.5" },
-    { BOOST_FLOAT64_C(87.285), "+ 87.28499 99999 99996 58939 48683 51519 10781 86035 15625" },
+    { BOOST_FLOAT64_C(1.), "1" },
+    { BOOST_FLOAT64_C(-1.5), "-1.5" },
+    { BOOST_FLOAT64_C(87.285), "87.28499" "99999" "99996" "58939" "48683" "51519" "10781" "86035" "15625" },
+    { BOOST_FLOAT64_C(0.0625), "0.0625" },
 #endif
 
 #ifdef BOOST_FLOAT32_C
-    { BOOST_FLOAT32_C(1.), "+ 1" },
-    { BOOST_FLOAT32_C(-1.5), "- 1.5" },
-    { BOOST_FLOAT32_C(87.285), "+ 87.28500 36621 09375" },
+    { BOOST_FLOAT32_C(1.), "1" },
+    { BOOST_FLOAT32_C(-1.5), "-1.5" },
+    { BOOST_FLOAT32_C(87.285), "87.28500" "36621" "09375" },
+    { BOOST_FLOAT32_C(0.0625), "0.0625" },
 #endif
 };
 
 INSTANTIATE_TEST_CASE_P(Serializations, Serialization,
                         ::testing::ValuesIn(serializations));
+
+TEST_F(Serialization, honor_showpos_for_positive)
+{
+    FloatInfo const value { 1.5 };
+    EXPECT_THAT(os << std::showpos << value,
+                ResultOf(str, StrEq("+1.5")));
+}
+
+TEST_F(Serialization, no_print_pos_sign_on_negative)
+{
+    // If the whole and fractional parts are printed as standalone numbers,
+    // then showpos might cause them to incorrectly include signs of their
+    // own.
+    FloatInfo const value { -1.5 };
+    EXPECT_THAT(os << std::showpos << value,
+                ResultOf(str, StrEq("-1.5")));
+}
+
+TEST_F(Serialization, ignore_noshowpos_for_negative)
+{
+    FloatInfo const value { -1.5 };
+    EXPECT_THAT(os << std::noshowpos << value,
+                ResultOf(str, StrEq("-1.5")));
+}
+
+TEST_F(Serialization, restore_showpos)
+{
+    FloatInfo const value { 1.5 };
+    EXPECT_THAT(os << std::showpos << value << value,
+                ResultOf(str, StrEq("+1.5+1.5")));
+}
+
+TEST_F(Serialization, restore_fill)
+{
+    FloatInfo const value { -1.0625 };
+    EXPECT_THAT(os << std::setfill('$') << value << std::setw(5) << -1,
+                ResultOf(str, StrEq("-1.0625$$$-1")));
+}
+
+TEST_F(Serialization, uses_setw)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::setw(9) << value,
+                ResultOf(str, testing::SizeIs(9)));
+}
+
+TEST_F(Serialization, uses_fill)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::setfill('&') << std::setw(9) << value,
+                ResultOf(str, StrEq("&&-1.0625")));
+}
+
+TEST_F(Serialization, aligns_right_by_default)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::setw(9) << value,
+                ResultOf(str, StrEq("  -1.0625")));
+}
+
+TEST_F(Serialization, aligns_right)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::right << std::setw(9) << value,
+                ResultOf(str, StrEq("  -1.0625")));
+}
+
+TEST_F(Serialization, aligns_left)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::left << std::setw(9) << value,
+                ResultOf(str, StrEq("-1.0625  ")));
+}
+
+TEST_F(Serialization, aligns_internal)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::internal << std::setw(9) << value,
+                ResultOf(str, StrEq("-  1.0625")));
+}
+
+TEST_F(Serialization, ignores_internal_when_too_wide)
+{
+    FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::internal << std::setw(4) << value,
+                ResultOf(str, StrEq("-1.0625")));
+}
+
+TEST_F(Serialization, honor_showpoint)
+{
+    FloatInfo const value { 1. };
+    EXPECT_THAT(os << std::showpoint << value,
+                ResultOf(str, StrEq("1.0")));
+}
+
+TEST_F(Serialization, showpoint_greater_than_ten)
+{
+    FloatInfo const value { 200. };
+    EXPECT_THAT(os << std::showpoint << value,
+                ResultOf(str, StrEq("200.0")));
+}
+
+TEST_F(Serialization, honor_locale_decimal_separator)
+{
+    NiceMock<MockNumpunct> facet;
+    EXPECT_CALL(facet, do_decimal_point())
+        .WillRepeatedly(Return(':'));
+    FloatInfo const value { 1.5 };
+    os.imbue(std::locale(os.getloc(), &facet));
+    EXPECT_THAT(os << value,
+                ResultOf(str, StrEq("1:5")));
+}
+
+TEST_F(Serialization, honor_basic_thousands_separator)
+{
+    NiceMock<MockNumpunct> facet;
+    EXPECT_CALL(facet, do_grouping())
+        .WillRepeatedly(Return("\2"));
+    FloatInfo const value { 1234567.0 };
+    os.imbue(std::locale(os.getloc(), &facet));
+    EXPECT_THAT(os << value,
+                ResultOf(str, StrEq("1,23,45,67")));
+}
+
+TEST_F(Serialization, honor_alternative_separator)
+{
+    NiceMock<MockNumpunct> facet;
+    EXPECT_CALL(facet, do_grouping())
+        .WillRepeatedly(Return("\2"));
+    EXPECT_CALL(facet, do_thousands_sep())
+        .WillRepeatedly(Return('j'));
+    FloatInfo const value { 1234567.0 };
+    os.imbue(std::locale(os.getloc(), &facet));
+    EXPECT_THAT(os << value,
+                ResultOf(str, StrEq("1j23j45j67")));
+}
+
+TEST_F(Serialization, no_separator_in_fraction)
+{
+    NiceMock<MockNumpunct> facet;
+    ON_CALL(facet, do_grouping())
+        .WillByDefault(Return("\2"));
+    FloatInfo const value { 0.0625 };
+    os.imbue(std::locale(os.getloc(), &facet));
+    EXPECT_THAT(os << value,
+                ResultOf(str, StrEq("0.0625")));
+}

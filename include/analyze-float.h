@@ -104,7 +104,7 @@ FloatInfo exact(Float f)
     return FloatInfo(f);
 }
 
-std::string
-FloatingBinPointToDecStr(mp::cpp_int Value, int ValBinExp, bool negative, char decimal_point = '.', char thousands_sep = ' ');
+void
+FloatingBinPointToDecStr(std::ostream& os, mp::cpp_int Value, int ValBinExp, bool negative);
 
 #endif
