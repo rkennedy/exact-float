@@ -12,13 +12,13 @@ autom4te.cache/
 config.*
 configure
 depcomp
-display-float
+exact-float
 install-sh
 libgmock.a
 libgtest.a
 missing
 stamp-h1
-test-analyze-float
+test-exact-float
 test-driver
 tests/gmock-all.cc
 tests/gtest-all.cc

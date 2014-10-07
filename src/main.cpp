@@ -8,7 +8,7 @@
 #include <boost/program_options.hpp>
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/for_each.hpp>
-#include "analyze-float.h"
+#include "exact-float.h"
 
 struct print_number
 {
@@ -60,7 +60,7 @@ main(int argc, char const* argv[])
         std::cout << PACKAGE_STRING << std::endl;
         return EXIT_SUCCESS;
     }
-    std::vector<std::string> const& args(vm["number"].as<std::vector<std::string>>());
+    auto const& args(vm["number"].as<std::vector<std::string>>());
 
     if (args.empty())
         return EXIT_FAILURE;

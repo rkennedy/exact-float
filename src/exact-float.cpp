@@ -12,7 +12,7 @@
 #include <tuple>
 #include <type_traits>
 #include <boost/multiprecision/cpp_int.hpp>
-#include "analyze-float.h"
+#include "exact-float.h"
 
 namespace mp = boost::multiprecision;
 

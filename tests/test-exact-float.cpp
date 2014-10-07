@@ -13,7 +13,7 @@
 #include <boost/variant.hpp>
 #include <boost/format.hpp>
 #include "float-literals.h"
-#include "analyze-float.h"
+#include "exact-float.h"
 
 using ::testing::Eq;
 using ::testing::StrEq;

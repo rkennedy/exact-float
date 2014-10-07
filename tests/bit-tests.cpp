@@ -6,7 +6,7 @@
 #include <boost/cstdfloat.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/variant.hpp>
-#include "include/analyze-float.h"
+#include "include/exact-float.h"
 
 namespace mp = boost::multiprecision;
 using namespace boost::multiprecision::literals;

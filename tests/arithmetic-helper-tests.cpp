@@ -5,8 +5,8 @@
 #include <gmock/gmock.h>
 #include <boost/utility/binary.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
-#include "analyze-float.h"
-#include "src/analyze-float.cpp"
+#include "exact-float.h"
+#include "src/exact-float.cpp"
 
 using ::testing::Eq;
 
