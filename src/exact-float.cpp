@@ -152,15 +152,21 @@ reduce_binary_exponent(mp::cpp_int Man, int BinExp)
 } // namespace
 
 std::map<std::type_index, float_traits> const float_trait_map {
+#ifdef BOOST_FLOAT80_C
     { typeid(boost::float80_t), {
         80, std::numeric_limits<boost::float80_t>::digits, false, std::numeric_limits<boost::float80_t>::max_exponent, "an", "Extended"
     }},
+#endif
+#ifdef BOOST_FLOAT64_C
     { typeid(boost::float64_t), {
         64, std::numeric_limits<boost::float64_t>::digits, true, std::numeric_limits<boost::float64_t>::max_exponent, "a", "Double"
     }},
+#endif
+#ifdef BOOST_FLOAT32_C
     { typeid(boost::float32_t), {
         32, std::numeric_limits<boost::float32_t>::digits, true, std::numeric_limits<boost::float32_t>::max_exponent, "a", "Single"
     }},
+#endif
 };
 
 float_type
