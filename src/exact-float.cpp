@@ -118,8 +118,7 @@ build_result(std::ostream& os, int DecExp, mp::cpp_int Man, bool negative)
 std::tuple<mp::cpp_int, int /*BinExp*/>
 minimize_mantissa(mp::cpp_int const& Man, int const BinExp)
 {
-    assert(Man != 0);
-    auto const idx = mp::lsb(Man);
+    auto const idx = Man.is_zero() ? 0 : mp::lsb(Man);
     int const adjustment = std::min<int>(idx, -BinExp);
     if (adjustment <= 0)
         return std::make_tuple(Man, BinExp);
@@ -207,7 +206,6 @@ FloatingBinPointToDecStr(std::ostream& os, mp::cpp_int Value, int BinExp, bool n
     mp::cpp_int Man = Value;
 
     std::tie(Man, BinExp) = minimize_mantissa(Man, BinExp);
-    assert(Man != 0);
 
     int DecExp;
     std::tie(Man, BinExp, DecExp) = remove_fraction(Man, BinExp);
@@ -230,7 +228,8 @@ operator<<(std::ostream& os, FloatInfo const& info)
             return os;
         }
         case zero:
-            return os << (info.negative ? "- 0" : "+ 0");
+            FloatingBinPointToDecStr(os, 0, 1, info.negative);
+            return os;
         case denormal:
             // TODO!
             FloatingBinPointToDecStr(os, info.mantissa, -info.traits.exponent_bias() - (info.traits.mantissa_bits() - 2), info.negative);

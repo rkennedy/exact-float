@@ -234,6 +234,13 @@ TEST_F(Serialization, honor_showpos_for_positive)
                 ResultOf(str, StrEq("+1.5")));
 }
 
+TEST_F(Serialization, honor_showpos_for_positive_zero)
+{
+    FloatInfo const value { 0.0 };
+    EXPECT_THAT(os << std::showpos << value,
+                ResultOf(str, StrEq("+0")));
+}
+
 TEST_F(Serialization, no_print_pos_sign_on_negative)
 {
     // If the whole and fractional parts are printed as standalone numbers,
@@ -244,11 +251,28 @@ TEST_F(Serialization, no_print_pos_sign_on_negative)
                 ResultOf(str, StrEq("-1.5")));
 }
 
+TEST_F(Serialization, no_print_pos_sign_on_negative_zero)
+{
+    // If the whole and fractional parts are printed as standalone numbers,
+    // then showpos might cause them to incorrectly include signs of their
+    // own.
+    FloatInfo const value { true, 0, 0, zero, typeid(float)};
+    EXPECT_THAT(os << std::showpos << value,
+                ResultOf(str, StrEq("-0")));
+}
+
 TEST_F(Serialization, ignore_noshowpos_for_negative)
 {
     FloatInfo const value { -1.5 };
     EXPECT_THAT(os << std::noshowpos << value,
                 ResultOf(str, StrEq("-1.5")));
+}
+
+TEST_F(Serialization, ignore_noshowpos_for_negative_zero)
+{
+    FloatInfo const value { true, 0, 0, zero, typeid(float)};
+    EXPECT_THAT(os << std::noshowpos << value,
+                ResultOf(str, StrEq("-0")));
 }
 
 TEST_F(Serialization, restore_showpos)
@@ -258,6 +282,13 @@ TEST_F(Serialization, restore_showpos)
                 ResultOf(str, StrEq("+1.5+1.5")));
 }
 
+TEST_F(Serialization, restore_showpos_zero)
+{
+    FloatInfo const value { 0.0 };
+    EXPECT_THAT(os << std::showpos << value << value,
+                ResultOf(str, StrEq("+0+0")));
+}
+
 TEST_F(Serialization, restore_fill)
 {
     FloatInfo const value { -1.0625 };
@@ -265,9 +296,23 @@ TEST_F(Serialization, restore_fill)
                 ResultOf(str, StrEq("-1.0625$$$-1")));
 }
 
+TEST_F(Serialization, restore_fill_zero)
+{
+    FloatInfo const value { true, 0, 0, zero, typeid(float)};
+    EXPECT_THAT(os << std::setfill('$') << value << std::setw(5) << -1,
+                ResultOf(str, StrEq("-0$$$-1")));
+}
+
 TEST_F(Serialization, uses_setw)
 {
     FloatInfo const value{-1.0625};
+    EXPECT_THAT(os << std::setw(9) << value,
+                ResultOf(str, testing::SizeIs(9)));
+}
+
+TEST_F(Serialization, uses_setw_zero)
+{
+    FloatInfo const value{true, 0, 0, zero, typeid(float)};
     EXPECT_THAT(os << std::setw(9) << value,
                 ResultOf(str, testing::SizeIs(9)));
 }
@@ -279,6 +324,13 @@ TEST_F(Serialization, uses_fill)
                 ResultOf(str, StrEq("&&-1.0625")));
 }
 
+TEST_F(Serialization, uses_fill_zero)
+{
+    FloatInfo const value{true, 0, 0, zero, typeid(float)};
+    EXPECT_THAT(os << std::setfill('&') << std::setw(9) << value,
+                ResultOf(str, StrEq("&&&&&&&-0")));
+}
+
 TEST_F(Serialization, aligns_right_by_default)
 {
     FloatInfo const value{-1.0625};
@@ -286,11 +338,25 @@ TEST_F(Serialization, aligns_right_by_default)
                 ResultOf(str, StrEq("  -1.0625")));
 }
 
+TEST_F(Serialization, aligns_right_by_default_zero)
+{
+    FloatInfo const value{true, 0, 0, zero, typeid(float)};
+    EXPECT_THAT(os << std::setw(9) << value,
+                ResultOf(str, StrEq("       -0")));
+}
+
 TEST_F(Serialization, aligns_right)
 {
     FloatInfo const value{-1.0625};
     EXPECT_THAT(os << std::right << std::setw(9) << value,
                 ResultOf(str, StrEq("  -1.0625")));
+}
+
+TEST_F(Serialization, aligns_right_zero)
+{
+    FloatInfo const value{true, 0, 0, zero, typeid(float)};
+    EXPECT_THAT(os << std::right << std::setw(9) << value,
+                ResultOf(str, StrEq("       -0")));
 }
 
 TEST_F(Serialization, aligns_left)
