@@ -1,0 +1,7 @@
+{
+  "name": "exact-float",
+  "version": "1.0.0",
+  "dependencies": {
+    "jasmine-node": "^1.14.5"
+  }
+}

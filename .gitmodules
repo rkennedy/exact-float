@@ -4,3 +4,6 @@
 [submodule "boost.m4"]
 	path = boost.m4
 	url = git://github.com/rkennedy/boost.m4
+[submodule "lib/javascript-bignum"]
+	path = lib/javascript-bignum
+	url = https://github.com/jtobey/javascript-bignum

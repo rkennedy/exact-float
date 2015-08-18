@@ -22,3 +22,4 @@ test-exact-float
 test-driver
 tests/gmock-all.cc
 tests/gtest-all.cc
+node_modules
