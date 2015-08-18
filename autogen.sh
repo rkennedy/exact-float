@@ -14,3 +14,4 @@ cp \
     boost.m4/build-aux/boost.m4 \
     m4
 autoreconf --force --install
+npm install > /dev/null

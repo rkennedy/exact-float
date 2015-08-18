@@ -1,7 +1,12 @@
 {
   "name": "exact-float",
   "version": "1.0.0",
-  "dependencies": {
+  "author": {
+    "name": "Rob Kennedy"
+  },
+  "private": true,
+  "devDependencies": {
     "jasmine-node": "^1.14.5"
-  }
+  },
+  "main": "src/exact-float.js"
 }
