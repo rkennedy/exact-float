@@ -17,6 +17,8 @@ exact_float_LDADD = $(BOOST_FORMAT_LIBS) \
                     $(BOOST_CONVERSION_LIBS) \
                     $(BOOST_PROGRAM_OPTIONS_LIBS)
 
+TESTS = jstests
+
 if USE_GMOCK
 noinst_LIBRARIES = libgtest.a libgmock.a
 nodist_libgtest_a_SOURCES = tests/gtest-all.cc
@@ -33,7 +35,7 @@ test_exact_float_CXXFLAGS = -I$(srcdir)/include $(BOOST_CXXFLAGS) $(GTEST_CXXFLA
 test_exact_float_LDFLAGS = $(BOOST_FORMAT_LDFLAGS) $(BOOST_VARIANT_LDFLAGS) $(GTEST_LDFLAGS) $(GMOCK_LDFLAGS)
 test_exact_float_LDADD = $(BOOST_FORMAT_LIBS) $(BOOST_VARIANT_LIBS) $(GTEST_LIBS) $(GMOCK_LIBS) libgtest.a libgmock.a
 
-TESTS = test-exact-float
+TESTS += test-exact-float
 endif
 
 dist_noinst_SCRIPTS = autogen.sh

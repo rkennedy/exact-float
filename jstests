@@ -1,0 +1,4 @@
+#!/bin/sh
+
+bindir=$(npm bin)
+node --harmony $bindir/jasmine
