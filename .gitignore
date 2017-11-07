@@ -12,6 +12,7 @@ autom4te.cache/
 config.*
 configure
 depcomp
+display-float
 exact-float
 install-sh
 libgmock.a

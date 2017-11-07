@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS} -I m4
 
-bin_PROGRAMS = exact-float
+bin_PROGRAMS = exact-float display-float
 exact_float_SOURCES = src/main.cpp src/exact-float.cpp
 exact_float_CPPFLAGS = -I$(srcdir)/include \
                        $(BOOST_CPPFLAGS) \
@@ -16,6 +16,12 @@ exact_float_LDADD = $(BOOST_FORMAT_LIBS) \
                     $(BOOST_VARIANT_LIBS) \
                     $(BOOST_CONVERSION_LIBS) \
                     $(BOOST_PROGRAM_OPTIONS_LIBS)
+
+display_float_SOURCES = src/display-float.cpp
+display_float_CPPFLAGS = $(BOOST_CPPFLAGS) \
+                         $(BOOST_CONVERSION_CPPFLAGS)
+display_float_LDFLAGS = $(BOOST_CONVERSION_LDFLAGS)
+display_float_LDADD = $(BOOST_CONVERSION_LIBS)
 
 if USE_GMOCK
 noinst_LIBRARIES = libgtest.a libgmock.a
